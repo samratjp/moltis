@@ -190,6 +190,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased"><a class="header" href="#unreleased">[Unreleased]</a></h2>
 <h3 id="added"><a class="header" href="#added">Added</a></h3>
 <ul>
+<li><strong>Internationalization (i18n)</strong>: web UI now supports runtime language switching via <code>i18next</code> with English and French locales. Error codes use structured constants with locale-aware error messages across API handlers, terminal, chat, and environment routes. Onboarding step labels, navigation buttons, and page strings use translation keys (<code>t()</code> calls)</li>
 <li><strong>Vault UI</strong>: recovery key display during onboarding password setup, vault status/unlock controls in Settings &gt; Security, encrypted/plaintext badges on environment variables</li>
 <li><strong>Encryption-at-rest vault</strong> (<code>vault</code> feature, default on) — environment variables are encrypted with XChaCha20-Poly1305 AEAD using Argon2id-derived keys. Vault is initialized on first password setup and auto-unsealed on login. Recovery key provided at initialization for emergency access. API: <code>/api/auth/vault/status</code>, <code>/api/auth/vault/unlock</code>, <code>/api/auth/vault/recovery</code></li>
 <li><code>send_image</code> tool for sending local image files (PNG, JPEG, GIF, WebP) to channel targets like Telegram, with optional caption support</li>
