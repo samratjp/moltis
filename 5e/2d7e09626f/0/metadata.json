@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "5e2d7e09626f",
+  "session_id": "336722ff-bab8-42b8-b5cc-1496eaab8ae4",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T12:17:25.764978Z",
+  "branch": "soul-location",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "crates/config/src/lib.rs",
+    "crates/config/src/loader.rs",
+    "crates/onboarding/src/service.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "e4f916499c9e",
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 82189,
+    "cache_read_tokens": 1151822,
+    "output_tokens": 1475,
+    "api_call_count": 26
+  }
+}
