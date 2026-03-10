@@ -64,3 +64,19 @@ error: unused variable: `config`
     |
 394 | pub fn generate_systemd_unit(moltis_bin: &Path, config: &Service...
 
+### Prompt 10
+
+🌈 zizmor v1.22.0
+i18n parity OK: 3 locales, 18 namespaces.
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/node-host/src/service.rs:391:
+ }
+
+ /// Generate a systemd user unit file.
+-pub fn generate_systemd_unit(moltis_bin: &Path, _config: &ServiceConfig, log_path: &Path) -> String {
++pub fn generate_systemd_unit(
++    moltis_bin: &Path,
++    _config: &ServiceConfig,
++    log_path: &Path,
++) -> St...
+
