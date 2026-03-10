@@ -1,0 +1,161 @@
+Implement the following plan:
+
+# Fix: STT test 401 during onboarding (#378)
+
+## Context
+
+During first-time onboarding, the STT "Test" button fails with `401 AUTH_NOT_AUTHENTICATED`.
+All voice config operations use WebSocket RPC (which bypasses auth via the public `/ws` path),
+but `transcribeAudio()` uniquely uses HTTP fetch (`POST /api/sessions/{key}/upload`) which goes
+through `auth_gate`. After the auth setup step, `is_setup_complete()=true` and `check_auth()`
+requires a valid session cookie. If the cookie fails (Docker networking, cookie domain, browser
+behavior), the request gets 401.
+
+The fix: in `auth_gate`'s `Unauthorized` branch, allow local API requests through with
+`Loopback` identity when onboarding hasn't completed yet (`.onboarded` sentinel file absent).
+
+## Changes
+
+### 1. `crates/service-traits/src/lib.rs` — Update NoopOnboardingService
+
+Change `NoopOnboardingService::wizard_status()` to return `"onboarded": true`:
+
+```rust
+// Line 808: change from
+Ok(serde_json::json!({ "active": false }))
+// to
+Ok(serde_json::json!({ "active": false, "onboarded": true }))
+```
+
+**Why:** The noop service is used in tests and when no real onboarding is configured. In both
+cases, onboarding is effectively "done." Without this, the new bypass would activate in all
+existing tests that use `start_auth_server()` (bound to `127.0.0.1` = local), breaking tests
+like `unauthenticated_returns_401`.
+
+### 2. `crates/gateway/src/auth_middleware.rs` — Add onboarding bypass
+
+In `auth_gate()`, add a `tracing::debug` import and insert an onboarding bypass at the start
+of the `Unauthorized` branch (before the existing API/WS check):
+
+```rust
+AuthResult::Unauthorized => {
+    // NEW: During onboarding, local API/WS requests may lack a valid
+    // session cookie. Allow them through with Loopback identity.
+    if is_local && (path.starts_with("/api/") || path.starts_with("/ws/")) {
+        let onboarded = state
+            .gateway
+            .services
+            .onboarding
+            .wizard_status()
+            .await
+            .ok()
+            .and_then(|v| v.get("onboarded").and_then(|v| v.as_bool()))
+            .unwrap_or(false);
+        if !onboarded {
+            debug!(path, remote = %addr, "auth bypass: local request during onboarding");
+            request.extensions_mut().insert(AuthIdentity {
+                method: AuthMethod::Loopback,
+            });
+            return next.run(request).await;
+        }
+    }
+    // ... existing Unauthorized handling unchanged
+}
+```
+
+The `wizard_status()` call only executes when `is_local=true` AND the path is `/api/*` or
+`/ws/*` AND auth returned `Unauthorized`. This is a narrow cold path.
+
+### 3. `crates/gateway/tests/auth_middleware.rs` — Add integration tests
+
+**3a. Add `MockOnboardingService`:**
+
+```rust
+struct MockOnboardingService { onboarded: AtomicBool }
+```
+
+Implement `OnboardingService` with `wizard_status()` returning the controlled `onboarded`
+value. Delegate all other methods to noop defaults.
+
+**3b. Add test helpers:**
+
+- `start_auth_server_with_onboarding(onboarded: bool)` — local server with mock onboarding
+- `start_proxied_server_with_onboarding(onboarded: bool)` — proxied (remote) server with mock
+
+**3c. Add tests:**
+
+| Test | Setup | Expected |
+|------|-------|----------|
+| `local_api_during_onboarding_bypasses_auth` | local, password set, onboarded=false | 200 |
+| `local_api_after_onboarding_requires_auth` | local, password set, onboarded=true | 401 |
+| `remote_api_during_onboarding_requires_auth` | proxied, password set, onboarded=false | 401 |
+
+## Verification
+
+1. `cargo test` — all existing tests pass + new tests pass
+2. `cargo +nightly-2025-11-30 fmt --all -- --check`
+3. `cargo +nightly-2025-11-30 clippy --workspace --all-features --all-targets -- -D warnings`
+4. Manual QA: fresh install → onboarding → voice step → STT test should work
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/penso/.claude/projects/-Users-penso--superset-worktrees-moltis-stt-401-during-onboarding/d0d38111-601b-4788-93ca-5dfa3082810d.jsonl
+
+---
+
+commit, push, create a PR
+
+---
+
+cccccclvttvndkkjtuijjhhgdbftdghlthnrugfvlklh
+
+---
+
+try again
+
+---
+
+[local/zizmor] passed in 0s
+Diff in /Users/penso/.superset/worktrees/moltis/stt-401-during-onboarding/crates/cli/src/node_commands.rs:157:
+             let node_config = moltis_node_host::NodeConfig {
+                 gateway_url: config.gateway_url,
+                 device_token: config.device_token,
+-                node_id: config.node_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
++                node_id: config
++                    .node_id
++                    .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                 display_name: config.display_name,
+                 platform: std::env::consts::OS.into(),
+                 caps: vec![
+Diff in /Users/penso/.superset/worktrees/moltis/stt-401-during-onboarding/crates/gateway/src/auth_middleware.rs:212:
+ fn is_public_path(path: &str) -> bool {
+     matches!(
+         path,
+-        "/health" | "/auth/callback" | "/manifest.json" | "/sw.js" | "/login" | "/setup-required" | "/ws"
++        "/health"
++            | "/auth/callback"
++            | "/manifest.json"
++            | "/sw.js"
++            | "/login"
++            | "/setup-required"
++            | "/ws"
+     ) || path.starts_with("/api/auth/")
+         || path.starts_with("/api/public/")
+         || path.starts_with("/api/channels/msteams/")
+error: Recipe `format-check` failed on line 14 with exit code 1
+[local/fmt] failed in 1s
+[local/fmt] total 1s
+[local/biome] total 0s
+[local/i18n] total 0s
+One or more parallel local checks failed.
+
+---
+
+commit and push
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+Fix the pineentry program, I see a ncurse stuffcccccdebgltidgrnehijknrhblnnucccurtgclhudcbk
