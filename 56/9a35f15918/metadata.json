@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "569a35f15918",
+  "strategy": "manual-commit",
+  "branch": "versioning",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/homebrew.yml",
+    ".github/workflows/release.yml",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "Cargo.lock",
+    "Cargo.toml",
+    "Dockerfile",
+    "cliff.toml",
+    "crates/cli/src/main.rs",
+    "crates/config/src/lib.rs",
+    "crates/config/src/version.rs",
+    "crates/gateway/src/server.rs",
+    "crates/gateway/src/state.rs",
+    "crates/gateway/src/update_check.rs",
+    "crates/mcp/Cargo.toml",
+    "crates/mcp/src/client.rs",
+    "crates/node-host/Cargo.toml",
+    "crates/node-host/src/runner.rs",
+    "crates/swift-bridge/src/lib.rs",
+    "justfile",
+    "scripts/check-changelog-guard.sh",
+    "scripts/prepare-release.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/56/9a35f15918/0/metadata.json",
+      "transcript": "/56/9a35f15918/0/full.jsonl",
+      "context": "/56/9a35f15918/0/context.md",
+      "content_hash": "/56/9a35f15918/0/content_hash.txt",
+      "prompt": "/56/9a35f15918/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 209,
+    "cache_creation_tokens": 127752,
+    "cache_read_tokens": 18619422,
+    "output_tokens": 38521,
+    "api_call_count": 205
+  }
+}
