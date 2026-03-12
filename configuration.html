@@ -354,7 +354,13 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed"]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-github"]
 env = { GITHUB_TOKEN = "ghp_..." }
+
+[mcp.servers.remote_api]
+transport = "sse"
+url = "https://mcp.example.com/mcp?api_key=$REMOTE_MCP_KEY"
+headers = { Authorization = "Bearer ${REMOTE_MCP_TOKEN}" }
 </code></pre>
+<p>Remote MCP URLs and headers support <code>$NAME</code> or <code>${NAME}</code> placeholders. For live remote servers, values resolve from Moltis-managed env overrides, either <code>[env]</code> in config or <strong>Settings</strong> → <strong>Environment Variables</strong>.</p>
 <h2 id="telegram-integration"><a class="header" href="#telegram-integration">Telegram Integration</a></h2>
 <pre><code class="language-toml">[channels.telegram.my-bot]
 token = "123456:ABC..."
