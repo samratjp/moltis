@@ -11,13 +11,14 @@ Current scope:
 - Typed runtime config with defaults for tracker, polling, workspace, hooks,
   agent, and Codex settings
 - Dispatch preflight validation
+- Read-only Linear candidate and issue-state polling
 - File watching and hot reload with last-known-good config retention
 - Workspace path sanitization and safety checks
-- A daemon skeleton exposed through `moltis symphony run`
+- A daemon skeleton exposed through `moltis symphony run`, with `--once`
+  performing a real Linear poll cycle
 
 What is not implemented yet in this slice:
 
-- Linear polling and issue normalization
 - Codex app-server execution
 - Retry orchestration and reconciliation
 - Gateway dashboard or REST/RPC status APIs

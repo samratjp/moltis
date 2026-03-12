@@ -29,6 +29,18 @@ pub enum SymphonyError {
     #[error("missing codex command")]
     MissingCodexCommand,
 
+    #[error("tracker request failed: {message}")]
+    TrackerRequest { message: String },
+
+    #[error("tracker API returned non-success status: {status}")]
+    TrackerStatus { status: u16 },
+
+    #[error("tracker GraphQL errors: {message}")]
+    TrackerGraphql { message: String },
+
+    #[error("tracker response payload was malformed")]
+    TrackerPayload,
+
     #[error("invalid config for `{field}`: {message}")]
     InvalidConfig {
         field: &'static str,

@@ -5,7 +5,8 @@ use tokio::sync::mpsc;
 use crate::{
     config::ServiceConfig,
     error::Result,
-    models::WorkflowDefinition,
+    models::{Issue, WorkflowDefinition},
+    tracker::LinearTrackerClient,
     watcher::{WorkflowWatchEvent, WorkflowWatcher},
     workflow::{load_workflow, resolve_workflow_path},
 };
@@ -20,6 +21,13 @@ pub struct RunOptions {
 pub struct SymphonyRuntime {
     workflow: WorkflowDefinition,
     config: ServiceConfig,
+    tracker: LinearTrackerClient,
+}
+
+#[derive(Debug, Clone)]
+pub struct PollSummary {
+    pub candidate_count: usize,
+    pub identifiers: Vec<String>,
 }
 
 impl SymphonyRuntime {
@@ -27,7 +35,12 @@ impl SymphonyRuntime {
         let path = resolve_workflow_path(workflow_path.as_deref());
         let workflow = load_workflow(&path)?;
         let config = ServiceConfig::from_workflow(&workflow)?;
-        Ok(Self { workflow, config })
+        let tracker = LinearTrackerClient::new()?;
+        Ok(Self {
+            workflow,
+            config,
+            tracker,
+        })
     }
 
     #[must_use]
@@ -47,6 +60,19 @@ impl SymphonyRuntime {
         self.config = config;
         Ok(())
     }
+
+    pub async fn poll_once(&self) -> Result<PollSummary> {
+        let issues = self
+            .tracker
+            .fetch_candidate_issues(&self.config.tracker)
+            .await?;
+        let sorted = sort_issues_for_dispatch(issues);
+
+        Ok(PollSummary {
+            candidate_count: sorted.len(),
+            identifiers: sorted.into_iter().map(|issue| issue.identifier).collect(),
+        })
+    }
 }
 
 #[cfg_attr(feature = "tracing", tracing::instrument(skip_all))]
@@ -60,6 +86,12 @@ pub async fn run_service(options: RunOptions) -> anyhow::Result<()> {
     );
 
     if options.once {
+        let summary = runtime.poll_once().await?;
+        tracing::info!(
+            candidate_count = summary.candidate_count,
+            identifiers = ?summary.identifiers,
+            "symphony poll cycle completed"
+        );
         return Ok(());
     }
 
@@ -102,21 +134,55 @@ async fn run_loop(
                 }
             }
             _ = interval.tick() => {
-                tracing::info!(
-                    workflow_path = %runtime.workflow().path.display(),
-                    poll_interval_ms = runtime.config().polling.interval_ms,
-                    dispatch_enabled = false,
-                    "symphony poll tick"
-                );
+                match runtime.poll_once().await {
+                    Ok(summary) => {
+                        tracing::info!(
+                            workflow_path = %runtime.workflow().path.display(),
+                            poll_interval_ms = runtime.config().polling.interval_ms,
+                            candidate_count = summary.candidate_count,
+                            identifiers = ?summary.identifiers,
+                            "symphony poll tick completed"
+                        );
+                    }
+                    Err(error) => {
+                        tracing::warn!(error = %error, "symphony poll tick failed");
+                    }
+                }
             }
         }
+    }
+}
+
+#[must_use]
+pub fn sort_issues_for_dispatch(mut issues: Vec<Issue>) -> Vec<Issue> {
+    issues.sort_by(|left, right| {
+        let left_priority = left.priority.unwrap_or(i32::MAX);
+        let right_priority = right.priority.unwrap_or(i32::MAX);
+
+        left_priority
+            .cmp(&right_priority)
+            .then_with(|| compare_created_at(left.created_at, right.created_at))
+            .then_with(|| left.identifier.cmp(&right.identifier))
+    });
+    issues
+}
+
+fn compare_created_at(
+    left: Option<time::OffsetDateTime>,
+    right: Option<time::OffsetDateTime>,
+) -> std::cmp::Ordering {
+    match (left, right) {
+        (Some(left), Some(right)) => left.cmp(&right),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => std::cmp::Ordering::Equal,
     }
 }
 
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
-    use super::*;
+    use {super::*, time::OffsetDateTime};
 
     #[test]
     fn invalid_reload_keeps_last_good_runtime() {
@@ -136,6 +202,51 @@ mod tests {
         assert_eq!(
             runtime.workflow().prompt_template,
             "Hello {{ issue.title }}"
+        );
+    }
+
+    #[test]
+    fn sorts_issues_by_priority_then_created_at_then_identifier() {
+        let now = OffsetDateTime::UNIX_EPOCH;
+        let later = now + time::Duration::minutes(5);
+        let issues = vec![
+            Issue {
+                id: "2".to_string(),
+                identifier: "MT-20".to_string(),
+                title: "B".to_string(),
+                priority: Some(2),
+                created_at: Some(later),
+                ..Issue::default()
+            },
+            Issue {
+                id: "1".to_string(),
+                identifier: "MT-10".to_string(),
+                title: "A".to_string(),
+                priority: Some(1),
+                created_at: Some(later),
+                ..Issue::default()
+            },
+            Issue {
+                id: "3".to_string(),
+                identifier: "MT-11".to_string(),
+                title: "C".to_string(),
+                priority: Some(1),
+                created_at: Some(now),
+                ..Issue::default()
+            },
+        ];
+
+        let sorted = sort_issues_for_dispatch(issues);
+        assert_eq!(
+            sorted
+                .into_iter()
+                .map(|issue| issue.identifier)
+                .collect::<Vec<_>>(),
+            vec![
+                "MT-11".to_string(),
+                "MT-10".to_string(),
+                "MT-20".to_string()
+            ]
         );
     }
 }
