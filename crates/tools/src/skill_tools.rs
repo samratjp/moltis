@@ -334,6 +334,8 @@ impl AgentTool for WriteSkillFilesTool {
                 "files": {
                     "type": "array",
                     "description": "Supplementary text files to write inside the skill directory",
+                    "minItems": 1,
+                    "maxItems": MAX_SIDECAR_FILES_PER_CALL,
                     "items": {
                         "type": "object",
                         "required": ["path", "content"],
@@ -521,17 +523,43 @@ fn normalize_relative_skill_file_path(path: &str) -> anyhow::Result<PathBuf> {
 }
 
 async fn write_sidecar_files(skill_dir: &Path, files: &[ValidatedSkillFile]) -> crate::Result<()> {
+    // Anchor the confinement check to the canonical *skills root*, not the
+    // skill directory itself.  If `<data_dir>/skills/<name>` were a symlink
+    // pointing outside the tree, using `canonicalize(skill_dir)` as the base
+    // would silently accept writes to the symlink target.
+    let skills_root = skill_dir
+        .parent()
+        .ok_or_else(|| Error::message("invalid skill directory"))?;
+    let canonical_skills_root = tokio::fs::canonicalize(skills_root).await?;
+
+    // Reject a skill directory that is itself a symlink.
+    let skill_meta = tokio::fs::symlink_metadata(skill_dir).await?;
+    if skill_meta.file_type().is_symlink() {
+        return Err(Error::message("skill directory must not be a symlink"));
+    }
+
     let canonical_base = tokio::fs::canonicalize(skill_dir).await?;
+    if !canonical_base.starts_with(&canonical_skills_root) {
+        return Err(Error::message("skill directory is outside the skills root"));
+    }
+
+    let mut written_paths: Vec<PathBuf> = Vec::new();
 
     for file in files {
         let target = skill_dir.join(&file.relative_path);
         let parent = target
             .parent()
             .ok_or_else(|| Error::message("invalid file path"))?;
+
+        // Validate path ancestry *before* creating directories so a symlinked
+        // intermediate cannot cause out-of-tree directory creation.
+        validate_no_symlinks_in_ancestry(skill_dir, &file.relative_path).await?;
+
         tokio::fs::create_dir_all(parent).await?;
 
         let canonical_parent = tokio::fs::canonicalize(parent).await?;
         if !canonical_parent.starts_with(&canonical_base) {
+            rollback_written_files(&written_paths).await;
             return Err(Error::message(
                 "can only write inside the personal skill directory",
             ));
@@ -539,12 +567,14 @@ async fn write_sidecar_files(skill_dir: &Path, files: &[ValidatedSkillFile]) -> 
 
         if let Ok(metadata) = tokio::fs::symlink_metadata(&target).await {
             if metadata.file_type().is_symlink() {
+                rollback_written_files(&written_paths).await;
                 return Err(Error::message(format!(
                     "refusing to write through symlink '{}'",
                     file.relative_path.display()
                 )));
             }
             if metadata.is_dir() {
+                rollback_written_files(&written_paths).await;
                 return Err(Error::message(format!(
                     "target '{}' is a directory",
                     file.relative_path.display()
@@ -557,6 +587,7 @@ async fn write_sidecar_files(skill_dir: &Path, files: &[ValidatedSkillFile]) -> 
             .file_name()
             .and_then(|value| value.to_str())
         else {
+            rollback_written_files(&written_paths).await;
             return Err(Error::message("invalid file name"));
         };
         let temp_name = format!(".{file_name}.moltis-tmp-{}", uuid::Uuid::new_v4());
@@ -565,11 +596,49 @@ async fn write_sidecar_files(skill_dir: &Path, files: &[ValidatedSkillFile]) -> 
         tokio::fs::write(&temp_path, &file.content).await?;
         if let Err(error) = tokio::fs::rename(&temp_path, &target).await {
             let _ = tokio::fs::remove_file(&temp_path).await;
+            rollback_written_files(&written_paths).await;
             return Err(error.into());
         }
+        written_paths.push(target);
     }
 
     Ok(())
+}
+
+/// Walk from `base` through the existing intermediate components of
+/// `relative_path` (excluding the final file component) and reject any
+/// symlink.  This prevents `create_dir_all` from following a symlinked
+/// intermediate and creating directories outside the skill tree.
+async fn validate_no_symlinks_in_ancestry(base: &Path, relative_path: &Path) -> crate::Result<()> {
+    let components: Vec<_> = relative_path.components().collect();
+    // Only check parent components — the last component is the file itself.
+    let parent_components = components.len().saturating_sub(1);
+    let mut current = base.to_path_buf();
+    for component in components.iter().take(parent_components) {
+        if let Component::Normal(segment) = component {
+            current.push(segment);
+            match tokio::fs::symlink_metadata(&current).await {
+                Ok(meta) if meta.file_type().is_symlink() => {
+                    return Err(Error::message(format!(
+                        "refusing to traverse symlink at '{}'",
+                        current.display()
+                    )));
+                },
+                Ok(_) => {},
+                // Path doesn't exist yet — safe to stop; create_dir_all will
+                // create it as a real directory.
+                Err(_) => break,
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Best-effort removal of already-written files when a batch fails mid-way.
+async fn rollback_written_files(paths: &[PathBuf]) {
+    for path in paths.iter().rev() {
+        let _ = tokio::fs::remove_file(path).await;
+    }
 }
 
 fn audit_sidecar_file_write(data_dir: &Path, skill_name: &str, files: &[ValidatedSkillFile]) {
@@ -594,7 +663,7 @@ fn audit_sidecar_file_write(data_dir: &Path, skill_name: &str, files: &[Validate
     })
     .to_string();
 
-    let _ = (|| -> std::io::Result<()> {
+    if let Err(err) = (|| -> std::io::Result<()> {
         std::fs::create_dir_all(&dir)?;
         let mut file = std::fs::OpenOptions::new()
             .create(true)
@@ -603,7 +672,13 @@ fn audit_sidecar_file_write(data_dir: &Path, skill_name: &str, files: &[Validate
         use std::io::Write as _;
         writeln!(file, "{line}")?;
         Ok(())
-    })();
+    })() {
+        tracing::warn!(
+            error = %err,
+            skill = skill_name,
+            "failed to write sidecar-file audit entry"
+        );
+    }
 }
 
 #[allow(clippy::unwrap_used, clippy::expect_used)]
@@ -1013,5 +1088,72 @@ mod tests {
 
         assert!(result.is_err());
         assert!(!outside.path().join("escape.sh").exists());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn test_write_skill_files_rejects_symlinked_skill_root() {
+        use std::os::unix::fs::symlink;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+
+        // Create a real skill directory outside the skills tree, then symlink
+        // the skill name to it.  The confinement check must reject this.
+        let skills_dir = tmp.path().join("skills");
+        std::fs::create_dir_all(&skills_dir).unwrap();
+        let real_dir = outside.path().join("real-skill");
+        std::fs::create_dir_all(&real_dir).unwrap();
+        std::fs::write(real_dir.join("SKILL.md"), "---\nname: evil\n---\n").unwrap();
+        symlink(&real_dir, skills_dir.join("evil")).unwrap();
+
+        let write = WriteSkillFilesTool::new(tmp.path().to_path_buf());
+        let result = write
+            .execute(json!({
+                "name": "evil",
+                "files": [{ "path": "payload.sh", "content": "echo pwned\n" }]
+            }))
+            .await;
+
+        assert!(result.is_err());
+        assert!(!real_dir.join("payload.sh").exists());
+    }
+
+    #[tokio::test]
+    async fn test_write_skill_files_rollback_on_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let create = CreateSkillTool::new(tmp.path().to_path_buf());
+        let write = WriteSkillFilesTool::new(tmp.path().to_path_buf());
+
+        create
+            .execute(json!({
+                "name": "my-skill",
+                "description": "test",
+                "body": "body"
+            }))
+            .await
+            .unwrap();
+
+        // Create a directory where the second file should be written,
+        // which will trigger the "target is a directory" error.
+        let collision_dir = tmp.path().join("skills/my-skill/collision");
+        std::fs::create_dir_all(&collision_dir).unwrap();
+
+        let result = write
+            .execute(json!({
+                "name": "my-skill",
+                "files": [
+                    { "path": "first.txt", "content": "ok\n" },
+                    { "path": "collision", "content": "boom\n" }
+                ]
+            }))
+            .await;
+
+        assert!(result.is_err());
+        // The first file should have been rolled back.
+        assert!(
+            !tmp.path().join("skills/my-skill/first.txt").exists(),
+            "first.txt should be rolled back after batch failure"
+        );
     }
 }
