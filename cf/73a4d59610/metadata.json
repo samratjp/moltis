@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "cf73a4d59610",
+  "strategy": "manual-commit",
+  "branch": "CHA-13-implement-crm-service",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cf/73a4d59610/0/metadata.json",
+      "transcript": "/cf/73a4d59610/0/full.jsonl",
+      "context": "/cf/73a4d59610/0/context.md",
+      "content_hash": "/cf/73a4d59610/0/content_hash.txt",
+      "prompt": "/cf/73a4d59610/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 142,
+    "cache_creation_tokens": 373144,
+    "cache_read_tokens": 9555873,
+    "output_tokens": 47168,
+    "api_call_count": 112
+  }
+}
