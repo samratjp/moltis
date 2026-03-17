@@ -421,6 +421,7 @@ This project uses [gstack](https://github.com/garrytan/gstack) — Garry Tan's o
 | `implement` | `/qa-design-review` | Design audit then fixes |
 | `code-review` | `/review` | Find bugs that pass CI but blow up in prod |
 | `merge` | `/ship` | Sync main, run tests, push, open PR |
+| `investigate` | `/design-consultation` | Research competitors, propose design system |
 | any | `/plan-design-review` | Design audit — report only, never touches code |
 | any | `/setup-browser-cookies` | Import cookies from real browser for auth'd testing |
 | post-ship | `/retro` | Team retro with per-person praise and growth notes |
