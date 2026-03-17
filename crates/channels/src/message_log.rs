@@ -44,4 +44,8 @@ pub trait MessageLog: Send + Sync {
         channel_type: &str,
         account_id: &str,
     ) -> Result<Vec<SenderSummary>>;
+
+    /// Delete all log entries whose `created_at` (Unix epoch seconds) is older than
+    /// `cutoff_epoch_secs`. Returns the number of rows deleted.
+    async fn delete_before(&self, cutoff_epoch_secs: i64) -> Result<u64>;
 }

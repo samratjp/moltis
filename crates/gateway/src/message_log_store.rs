@@ -137,6 +137,15 @@ impl MessageLog for SqliteMessageLog {
             .collect())
     }
 
+    async fn delete_before(&self, cutoff_epoch_secs: i64) -> ChannelResult<u64> {
+        let result = sqlx::query("DELETE FROM message_log WHERE created_at < ?")
+            .bind(cutoff_epoch_secs)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| channel_db_error("delete old message log entries", e))?;
+        Ok(result.rows_affected())
+    }
+
     async fn unique_senders(
         &self,
         channel_type: &str,

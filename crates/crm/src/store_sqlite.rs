@@ -458,6 +458,14 @@ impl CrmStore for SqliteCrmStore {
             .await?;
         Ok(())
     }
+
+    async fn delete_interactions_before(&self, cutoff_epoch_ms: i64) -> Result<u64> {
+        let result = sqlx::query("DELETE FROM crm_interactions WHERE created_at < ?")
+            .bind(cutoff_epoch_ms)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected())
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

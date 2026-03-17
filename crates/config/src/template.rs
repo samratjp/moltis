@@ -586,6 +586,20 @@ default_practice_area = "other"   # Default practice area for new matters:
 # retention_days = 365            # Days to retain interaction records (omit = keep forever)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# DATA RETENTION
+# ══════════════════════════════════════════════════════════════════════════════
+# Automatic purging of aged records. Disabled by default — no data is ever
+# deleted unless you explicitly enable this section.
+
+# [data_retention]
+# enabled = false                        # Enable the retention engine
+# schedule = "0 3 * * *"                # Cron expression: when the sweep runs (default: daily 03:00)
+# dry_run = false                        # Log what would be deleted without deleting
+# crm_interactions_days = 365           # Days to keep CRM interaction records
+# message_log_days = 90                 # Days to keep channel message log entries
+# sessions_days = 30                    # Days to keep session JSONL files
+
+# ══════════════════════════════════════════════════════════════════════════════
 # CHANNELS
 # ══════════════════════════════════════════════════════════════════════════════
 # External messaging integrations.

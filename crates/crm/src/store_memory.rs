@@ -176,6 +176,13 @@ impl CrmStore for MemoryCrmStore {
         interactions.remove(id);
         Ok(())
     }
+
+    async fn delete_interactions_before(&self, cutoff_epoch_ms: i64) -> Result<u64> {
+        let mut interactions = self.interactions.write().unwrap_or_else(|e| e.into_inner());
+        let before = interactions.len() as u64;
+        interactions.retain(|_, i| i.created_at as i64 >= cutoff_epoch_ms);
+        Ok(before - interactions.len() as u64)
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
