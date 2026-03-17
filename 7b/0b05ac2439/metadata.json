@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "7b0b05ac2439",
+  "strategy": "manual-commit",
+  "branch": "tailscale-redirects",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/auth_middleware.rs",
+    "crates/web/src/assets/js/onboarding-view.js",
+    "crates/web/src/lib.rs",
+    "crates/web/src/spa.rs",
+    "crates/web/src/templates.rs",
+    "crates/web/src/templates/setup-required.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7b/0b05ac2439/0/metadata.json",
+      "transcript": "/7b/0b05ac2439/0/full.jsonl",
+      "content_hash": "/7b/0b05ac2439/0/content_hash.txt",
+      "prompt": "/7b/0b05ac2439/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 194,
+    "cache_creation_tokens": 258518,
+    "cache_read_tokens": 12614795,
+    "output_tokens": 33611,
+    "api_call_count": 162
+  }
+}

@@ -1,0 +1,122 @@
+✓  222 [auth] › e2e/specs/auth.spec.js:658:2 › Login page › login page redirects to / when already authenticated (290ms)
+  ✓  223 [auth] › e2e/specs/auth.spec.js:667:2 › Login page › auth status API provides required fields for login page (25ms)
+
+
+  1) [auth] › e2e/specs/auth.spec.js:318:2 › Authentication › logout button updates after runtime auth status change
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('#logoutBtn')
+    Expected: visible
+    Received: hidden
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('#logoutBtn')
+        14 × locator resolved to <button id="logoutBtn" title="Sign out" class="logout-btn">…</button>
+           - unexpected value "hidden"
+
+
+      357 |             });
+      358 |
+    > 359 |             await expect(logoutBtn).toBeVisible();
+          |                                     ^
+      360 |             expect(pageErrors).toEqual([]);
+      361 |     });
+      362 |
+        at /Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/web/ui/e2e/specs/auth.spec.js:359:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/auth-Authentication-logout-07cc3--runtime-auth-status-change-auth/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: error-context (text/markdown) ───────────────────────────────────────────────────
+    ## Error Context
+
+    **Test**: logout button updates after runtime auth status change
+    **Status**: failed
+
+    ### Page 1: [tailscale-redirects] AutoBotNameA
+    - **URL**: http://127.0.0.1:62117/chats/main
+
+    ```
+    Running on: tailscale-redirects
+    🐙 AutoBotNameA
+    365MB · 85GB free / 137GB
+    Settings
+    Report issue
+    +
+    Se...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/auth-Authentication-logout-07cc3--runtime-auth-status-change-auth/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/auth-Authentication-logout-07cc3--runtime-auth-status-change-auth/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/auth-Authentication-logout-07cc3--runtime-auth-status-change-auth/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [onboarding-auth] › e2e/specs/onboarding-auth.spec.js:127:2 › Onboarding with forced auth (remote) › completes auth and identity steps via WebSocket
+
+    Error: expect(received).toMatch(expected)
+
+    Expected pattern: /^\/(?:onboarding|login|chats\/.+)$/
+    Received string:  "/setup-required"
+
+    Call Log:
+    - Timeout 15000ms exceeded while waiting on the predicate
+
+      130 |             // previous attempt already configured auth but did not finish onboarding.
+      131 |             await page.goto("/");
+    > 132 |             await expect
+          |             ^
+      133 |                     .poll(() => new URL(page.url()).pathname, { timeout: 15_000 })
+      134 |                     .toMatch(/^\/(?:onboarding|login|chats\/.+)$/);
+      135 |
+        at /Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/web/ui/e2e/specs/onboarding-auth.spec.js:132:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/onboarding-auth-Onboarding-b22bc-dentity-steps-via-WebSocket-onboarding-auth/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: error-context (text/markdown) ───────────────────────────────────────────────────
+    ## Error Context
+
+    **Test**: completes auth and identity steps via WebSocket
+    **Status**: failed
+
+    ### Page 1: Setup Required
+    - **URL**: http://127.0.0.1:62119/setup-required
+
+    ```
+    Authentication Not Configured
+
+    This instance requires authentication to be set up before it can be accessed remotely.
+
+    Conn...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/onboarding-auth-Onboarding-b22bc-dentity-steps-via-WebSocket-onboarding-auth/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/onboarding-auth-Onboarding-b22bc-dentity-steps-via-WebSocket-onboarding-auth/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/onboarding-auth-Onboarding-b22bc-dentity-steps-via-WebSocket-onboarding-auth/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [auth] › e2e/specs/auth.spec.js:318:2 › Authentication › logout button updates after runtime auth status change
+    [onboarding-auth] › e2e/specs/onboarding-auth.spec.js:127:2 › Onboarding with forced auth (remote) › completes auth and identity steps via WebSocket
+  6 skipped
+  215 passed (2.8m)
+[local/e2e] failed in 170s

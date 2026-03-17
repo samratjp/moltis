@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "322e0e2dd780",
+  "strategy": "manual-commit",
+  "branch": "cha-9-crm-types",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "Cargo.lock",
+    "crates/crm/Cargo.toml",
+    "crates/crm/migrations/20260317000001_crm_types.sql",
+    "crates/crm/src/error.rs",
+    "crates/crm/src/lib.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/types.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/32/2e0e2dd780/0/metadata.json",
+      "transcript": "/32/2e0e2dd780/0/full.jsonl",
+      "context": "/32/2e0e2dd780/0/context.md",
+      "content_hash": "/32/2e0e2dd780/0/content_hash.txt",
+      "prompt": "/32/2e0e2dd780/0/prompt.txt"
+    },
+    {
+      "metadata": "/32/2e0e2dd780/1/metadata.json",
+      "transcript": "/32/2e0e2dd780/1/full.jsonl",
+      "context": "/32/2e0e2dd780/1/context.md",
+      "content_hash": "/32/2e0e2dd780/1/content_hash.txt",
+      "prompt": "/32/2e0e2dd780/1/prompt.txt"
+    },
+    {
+      "metadata": "/32/2e0e2dd780/2/metadata.json",
+      "transcript": "/32/2e0e2dd780/2/full.jsonl",
+      "context": "/32/2e0e2dd780/2/context.md",
+      "content_hash": "/32/2e0e2dd780/2/content_hash.txt",
+      "prompt": "/32/2e0e2dd780/2/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 115,
+    "cache_creation_tokens": 235930,
+    "cache_read_tokens": 4782550,
+    "output_tokens": 50040,
+    "api_call_count": 75
+  }
+}
