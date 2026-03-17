@@ -1,0 +1,30 @@
+# Moltis configuration for this project
+# Full reference: https://docs.moltis.org/configuration.html
+
+[server]
+port = 13131
+bind = "127.0.0.1"
+
+[identity]
+name = "LegalAssist"
+
+[tools]
+agent_timeout_secs = 600
+agent_max_iterations = 25
+
+[providers]
+offered = ["anthropic", "openai"]
+
+[providers.anthropic]
+enabled = true
+
+[providers.openai]
+enabled = true
+
+[tools.exec.sandbox]
+mode = "all"
+scope = "session"
+workspace_mount = "ro"
+home_persistence = "shared"
+backend = "auto"
+no_network = false
