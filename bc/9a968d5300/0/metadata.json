@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "bc9a968d5300",
+  "session_id": "c30a760b-775f-4ceb-bb2d-970393abc9df",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-11T06:21:05.441588Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "docs/src/slack.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "54c83a63fa72",
+  "checkpoint_transcript_start": 319,
+  "transcript_lines_at_start": 319,
+  "token_usage": {
+    "input_tokens": 4,
+    "cache_creation_tokens": 2644,
+    "cache_read_tokens": 413112,
+    "output_tokens": 99,
+    "api_call_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-11T06:21:04.838913Z",
+    "agent_lines": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 2,
+    "agent_percentage": 100
+  }
+}

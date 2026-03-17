@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "0116f75fbec8",
+  "strategy": "manual-commit",
+  "branch": "tailscale-redirects",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/auth_middleware.rs",
+    "crates/gateway/tests/auth_middleware.rs",
+    "crates/web/ui/e2e/specs/onboarding-auth.spec.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/01/16f75fbec8/0/metadata.json",
+      "transcript": "/01/16f75fbec8/0/full.jsonl",
+      "content_hash": "/01/16f75fbec8/0/content_hash.txt",
+      "prompt": "/01/16f75fbec8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 49,
+    "cache_creation_tokens": 94722,
+    "cache_read_tokens": 4376676,
+    "output_tokens": 12259,
+    "api_call_count": 47
+  }
+}

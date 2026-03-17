@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "f20b03984347",
+  "session_id": "8769bd03-3e97-426a-a0b2-21ac11110443",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-11T06:35:33.085012Z",
+  "branch": "copilot-gpt-5.4",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "crates/providers/src/github_copilot.rs",
+    "crates/providers/src/openai.rs",
+    "crates/providers/src/openai_compat.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "e4a30ab808a4",
+  "token_usage": {
+    "input_tokens": 67,
+    "cache_creation_tokens": 118105,
+    "cache_read_tokens": 6914734,
+    "output_tokens": 1183,
+    "api_call_count": 63
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-11T06:35:31.801606Z",
+    "agent_lines": 1182,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1182,
+    "agent_percentage": 100
+  }
+}

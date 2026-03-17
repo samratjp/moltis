@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "333257de8c57",
+  "session_id": "ffe9ecd3-e9a2-4c9c-bcfb-25cb69f3d29f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T16:09:56.497334Z",
+  "branch": "stt-401-during-onboarding",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "crates/cli/src/node_commands.rs",
+    "crates/gateway/src/auth_middleware.rs",
+    "crates/gateway/tests/auth_middleware.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "466a4a769032",
+  "token_usage": {
+    "input_tokens": 101,
+    "cache_creation_tokens": 275867,
+    "cache_read_tokens": 7485970,
+    "output_tokens": 1385,
+    "api_call_count": 88
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-10T16:09:55.719068Z",
+    "agent_lines": 291,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 291,
+    "agent_percentage": 100
+  }
+}

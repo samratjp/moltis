@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "00c9568a8451",
+  "strategy": "manual-commit",
+  "branch": "CHA-12-crm-service-trait",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/service-traits/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/00/c9568a8451/0/metadata.json",
+      "transcript": "/00/c9568a8451/0/full.jsonl",
+      "context": "/00/c9568a8451/0/context.md",
+      "content_hash": "/00/c9568a8451/0/content_hash.txt",
+      "prompt": "/00/c9568a8451/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 72,
+    "cache_creation_tokens": 149565,
+    "cache_read_tokens": 3502205,
+    "output_tokens": 15330,
+    "api_call_count": 54
+  }
+}
