@@ -1,0 +1,70 @@
+~/.s/w/m/tailscale-redirects tailscale-redirects [!] ❯ ./scripts/local-validate.sh 356
+Detected macOS without nvcc; forcing non-CUDA local validation commands (no --all-features).
+Override with LOCAL_VALIDATE_LINT_CMD / LOCAL_VALIDATE_TEST_CMD / LOCAL_VALIDATE_BUILD_CMD / LOCAL_VALIDATE_COVERAGE_CMD if needed.
+Validating PR #356 (a0e289232d02ee7a7bc4c54bfc25a4755db29688) in moltis-org/moltis
+Publishing commit statuses to: moltis-org/moltis
+Current CI workflow: https://github.com/moltis-org/moltis/actions/runs/22849498452
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-1aecd5b9a954bff1
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-372730c6a2677503
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-64dc900a7d790e9f
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-762d9daf3e1494a4
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-bbd6b350f8c732d9
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-c25b84204336f7d9
+Removing cached llama build dir: target/release/build/llama-cpp-sys-2-ce1312e0f0e81354
+i18n parity OK: 3 locales, 18 namespaces.
+cargo +nightly-2025-11-30 fmt --all -- --check
+🌈 zizmor v1.23.0
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+Checked 133 files in 126ms. No fixes applied.
+[local/i18n] passed in 1s
+[local/biome] passed in 1s
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+[local/fmt] passed in 2s
+[local/fmt] total 3s
+[local/biome] total 2s
+[local/i18n] total 1s
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+[local/lockfile] passed in 1s
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/release.yml
+No findings to report. Good job! (36 ignored, 47 suppressed)
+[local/zizmor] passed in 5s
+   Compiling llama-cpp-sys-2 v0.1.133
+    Checking llama-cpp-2 v0.1.133
+    Checking moltis-providers v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/providers)
+    Checking moltis-tools v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/tools)
+    Checking moltis-provider-setup v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/provider-setup)
+    Checking benchmarks v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/benchmarks)
+    Checking moltis-chat v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/chat)
+    Checking moltis-auth v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/auth)
+    Checking moltis-gateway v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/gateway)
+    Checking moltis-web v0.10.17 (/Users/penso/.superset/worktrees/moltis/tailscale-redirects/crates/web)
+error: this `if` statement can be collapsed
+  --> crates/web/src/spa.rs:47:5
+   |
+47 | /     if let Some(ref store) = state.gateway.credential_store {
+48 | |         if store.is_setup_complete() {
+49 | |             return Redirect::to("/login").into_response();
+50 | |         }
+51 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+   = note: `-D clippy::collapsible-if` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+   |
+47 ~     if let Some(ref store) = state.gateway.credential_store
+48 ~         && store.is_setup_complete() {
+49 |             return Redirect::to("/login").into_response();
+50 ~         }
+   |
+
+error: could not compile `moltis-web` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `moltis-web` (lib test) due to 1 previous error
+      Timing report saved to /Users/penso/.superset/worktrees/moltis/tailscale-redirects/target/cargo-timings/cargo-timing-20260309T103913.166728Z.html
+[local/lint] failed in 1359s
+~/.s/w/m/tailscale-redirects tailscale-redirects ❯
