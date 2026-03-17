@@ -1258,6 +1258,9 @@ pub struct GatewayServices {
     pub agent_persona_store: Option<Arc<crate::agent_persona::AgentPersonaStore>>,
     /// Shared agents config (presets) for spawn_agent and RPC sync.
     pub agents_config: Option<Arc<tokio::sync::RwLock<moltis_config::AgentsConfig>>>,
+    /// Optional CRM store for contact, matter, and interaction persistence.
+    #[cfg(feature = "crm")]
+    pub crm_store: Option<Arc<dyn moltis_crm::CrmStore>>,
 }
 
 impl GatewayServices {
@@ -1349,6 +1352,8 @@ impl GatewayServices {
             session_share_store: None,
             agent_persona_store: None,
             agents_config: None,
+            #[cfg(feature = "crm")]
+            crm_store: None,
         }
     }
 
@@ -1406,6 +1411,13 @@ impl GatewayServices {
         agents_config: Arc<tokio::sync::RwLock<moltis_config::AgentsConfig>>,
     ) -> Self {
         self.agents_config = Some(agents_config);
+        self
+    }
+
+    /// Set the CRM store used for contact/matter/interaction persistence.
+    #[cfg(feature = "crm")]
+    pub fn with_crm_store(mut self, store: Arc<dyn moltis_crm::CrmStore>) -> Self {
+        self.crm_store = Some(store);
         self
     }
 

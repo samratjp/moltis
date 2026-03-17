@@ -27,8 +27,8 @@ pub use {
     error::{Error, Result},
     store::{CrmStore, MemoryCrmStore, SqliteCrmStore},
     types::{
-        Contact, ContactChannel, ContactStage, Interaction, InteractionKind, Matter, MatterPhase,
-        MatterStatus, PracticeArea,
+        Contact, ContactChannel, ContactStage, ContactWithChannels, Interaction, InteractionKind,
+        Matter, MatterPhase, MatterStatus, PracticeArea,
     },
 };
 
