@@ -10,8 +10,8 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("record not found: {id}")]
     NotFound { id: String },
-    #[error("invalid value for field '{field}': {value}")]
-    InvalidField { field: String, value: String },
+    #[error("invalid value for {field}: {value:?}")]
+    Parse { field: &'static str, value: String },
     #[error("{context}: {source}")]
     External {
         context: String,
@@ -27,9 +27,9 @@ impl Error {
     }
 
     #[must_use]
-    pub fn invalid_field(field: impl Into<String>, value: impl Into<String>) -> Self {
-        Self::InvalidField {
-            field: field.into(),
+    pub fn parse(field: &'static str, value: impl Into<String>) -> Self {
+        Self::Parse {
+            field,
             value: value.into(),
         }
     }

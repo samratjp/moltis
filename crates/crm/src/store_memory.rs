@@ -12,9 +12,9 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct MemoryCrmStore {
     contacts: RwLock<HashMap<String, Contact>>,
-    matters: RwLock<HashMap<String, Matter>>,
-    interactions: RwLock<Vec<Interaction>>,
     channels: RwLock<HashMap<String, ContactChannel>>,
+    matters: RwLock<HashMap<String, Matter>>,
+    interactions: RwLock<HashMap<String, Interaction>>,
 }
 
 impl MemoryCrmStore {
@@ -62,6 +62,43 @@ impl CrmStore for MemoryCrmStore {
         Ok(())
     }
 
+    // ── Contact channels ──────────────────────────────────────────────────────
+
+    async fn list_channels_for_contact(&self, contact_id: &str) -> Result<Vec<ContactChannel>> {
+        let channels = self.channels.read().unwrap_or_else(|e| e.into_inner());
+        let mut out: Vec<ContactChannel> = channels
+            .values()
+            .filter(|ch| ch.contact_id == contact_id)
+            .cloned()
+            .collect();
+        out.sort_by_key(|ch| std::cmp::Reverse(ch.updated_at));
+        Ok(out)
+    }
+
+    async fn get_channel_by_external(
+        &self,
+        channel_type: &str,
+        channel_id: &str,
+    ) -> Result<Option<ContactChannel>> {
+        let channels = self.channels.read().unwrap_or_else(|e| e.into_inner());
+        Ok(channels
+            .values()
+            .find(|ch| ch.channel_type == channel_type && ch.channel_id == channel_id)
+            .cloned())
+    }
+
+    async fn upsert_channel(&self, channel: ContactChannel) -> Result<()> {
+        let mut channels = self.channels.write().unwrap_or_else(|e| e.into_inner());
+        channels.insert(channel.id.clone(), channel);
+        Ok(())
+    }
+
+    async fn delete_channel(&self, id: &str) -> Result<()> {
+        let mut channels = self.channels.write().unwrap_or_else(|e| e.into_inner());
+        channels.remove(id);
+        Ok(())
+    }
+
     // ── Matters ───────────────────────────────────────────────────────────────
 
     async fn list_matters(&self) -> Result<Vec<Matter>> {
@@ -104,83 +141,53 @@ impl CrmStore for MemoryCrmStore {
     async fn list_interactions_by_contact(&self, contact_id: &str) -> Result<Vec<Interaction>> {
         let interactions = self.interactions.read().unwrap_or_else(|e| e.into_inner());
         let mut out: Vec<Interaction> = interactions
-            .iter()
+            .values()
             .filter(|i| i.contact_id == contact_id)
             .cloned()
             .collect();
-        out.sort_by_key(|i| std::cmp::Reverse(i.created_at));
+        out.sort_by_key(|i| std::cmp::Reverse(i.updated_at));
         Ok(out)
     }
 
     async fn list_interactions_by_matter(&self, matter_id: &str) -> Result<Vec<Interaction>> {
         let interactions = self.interactions.read().unwrap_or_else(|e| e.into_inner());
         let mut out: Vec<Interaction> = interactions
-            .iter()
+            .values()
             .filter(|i| i.matter_id.as_deref() == Some(matter_id))
             .cloned()
             .collect();
-        out.sort_by_key(|i| std::cmp::Reverse(i.created_at));
+        out.sort_by_key(|i| std::cmp::Reverse(i.updated_at));
         Ok(out)
     }
 
-    async fn create_interaction(&self, interaction: Interaction) -> Result<()> {
+    async fn get_interaction(&self, id: &str) -> Result<Option<Interaction>> {
+        let interactions = self.interactions.read().unwrap_or_else(|e| e.into_inner());
+        Ok(interactions.get(id).cloned())
+    }
+
+    async fn upsert_interaction(&self, interaction: Interaction) -> Result<()> {
         let mut interactions = self.interactions.write().unwrap_or_else(|e| e.into_inner());
-        interactions.push(interaction);
+        interactions.insert(interaction.id.clone(), interaction);
         Ok(())
     }
 
     async fn delete_interaction(&self, id: &str) -> Result<()> {
         let mut interactions = self.interactions.write().unwrap_or_else(|e| e.into_inner());
-        interactions.retain(|i| i.id != id);
-        Ok(())
-    }
-
-    // ── Contact channels ──────────────────────────────────────────────────────
-
-    async fn list_channels_by_contact(&self, contact_id: &str) -> Result<Vec<ContactChannel>> {
-        let channels = self.channels.read().unwrap_or_else(|e| e.into_inner());
-        let mut out: Vec<ContactChannel> = channels
-            .values()
-            .filter(|ch| ch.contact_id == contact_id)
-            .cloned()
-            .collect();
-        out.sort_by_key(|ch| ch.created_at);
-        Ok(out)
-    }
-
-    async fn get_channel_by_type_and_id(
-        &self,
-        channel_type: &str,
-        channel_identifier: &str,
-    ) -> Result<Option<ContactChannel>> {
-        let channels = self.channels.read().unwrap_or_else(|e| e.into_inner());
-        Ok(channels
-            .values()
-            .find(|ch| {
-                ch.channel_type == channel_type && ch.channel_identifier == channel_identifier
-            })
-            .cloned())
-    }
-
-    async fn upsert_channel(&self, channel: ContactChannel) -> Result<()> {
-        let mut channels = self.channels.write().unwrap_or_else(|e| e.into_inner());
-        channels.insert(channel.id.clone(), channel);
-        Ok(())
-    }
-
-    async fn delete_channel(&self, id: &str) -> Result<()> {
-        let mut channels = self.channels.write().unwrap_or_else(|e| e.into_inner());
-        channels.remove(id);
+        interactions.remove(id);
         Ok(())
     }
 }
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use {
         super::*,
-        crate::types::{Contact, ContactChannel, Interaction, InteractionKind, Matter},
+        crate::types::{
+            Contact, ContactChannel, Interaction, InteractionKind, Matter, PracticeArea,
+        },
     };
 
     // ── Contact tests ─────────────────────────────────────────────────────────
@@ -259,132 +266,171 @@ mod tests {
         );
     }
 
-    // ── Matter tests ──────────────────────────────────────────────────────────
-
-    #[tokio::test]
-    async fn upsert_and_get_matter() {
-        let store = MemoryCrmStore::new();
-        let m = Matter::new("Deal");
-        let id = m.id.clone();
-        store.upsert_matter(m).await.unwrap();
-        let found = store.get_matter(&id).await.unwrap().unwrap();
-        assert_eq!(found.title, "Deal");
-    }
-
-    #[tokio::test]
-    async fn list_matters_by_contact_filters_correctly() {
-        let store = MemoryCrmStore::new();
-        let cid = "contact-1";
-        let m1 = Matter::for_contact("Deal A", cid);
-        let m2 = Matter::new("Unrelated");
-        store.upsert_matter(m1.clone()).await.unwrap();
-        store.upsert_matter(m2).await.unwrap();
-        let by_contact = store.list_matters_by_contact(cid).await.unwrap();
-        assert_eq!(by_contact.len(), 1);
-        assert_eq!(by_contact[0].id, m1.id);
-    }
-
-    #[tokio::test]
-    async fn delete_matter_is_idempotent() {
-        let store = MemoryCrmStore::new();
-        let m = Matter::new("Gone");
-        let id = m.id.clone();
-        store.upsert_matter(m).await.unwrap();
-        store.delete_matter(&id).await.unwrap();
-        store.delete_matter(&id).await.unwrap();
-        assert!(store.get_matter(&id).await.unwrap().is_none());
-    }
-
-    // ── Interaction tests ─────────────────────────────────────────────────────
-
-    #[tokio::test]
-    async fn create_and_list_interaction_by_contact() {
-        let store = MemoryCrmStore::new();
-        let cid = "c-1";
-        let i = Interaction::new(cid, InteractionKind::Note, Some("hi".into()));
-        store.create_interaction(i.clone()).await.unwrap();
-        let found = store.list_interactions_by_contact(cid).await.unwrap();
-        assert_eq!(found.len(), 1);
-        assert_eq!(found[0].id, i.id);
-    }
-
-    #[tokio::test]
-    async fn list_interactions_by_matter_filters_correctly() {
-        let store = MemoryCrmStore::new();
-        let cid = "c-2";
-        let mid = "m-2";
-        let mut i = Interaction::new(cid, InteractionKind::Call, None);
-        i.matter_id = Some(mid.into());
-        store.create_interaction(i.clone()).await.unwrap();
-        store
-            .create_interaction(Interaction::new(cid, InteractionKind::Message, None))
-            .await
-            .unwrap();
-        let by_matter = store.list_interactions_by_matter(mid).await.unwrap();
-        assert_eq!(by_matter.len(), 1);
-        assert_eq!(by_matter[0].id, i.id);
-    }
-
-    #[tokio::test]
-    async fn delete_interaction_is_idempotent() {
-        let store = MemoryCrmStore::new();
-        let cid = "c-3";
-        let i = Interaction::new(cid, InteractionKind::Meeting, None);
-        let iid = i.id.clone();
-        store.create_interaction(i).await.unwrap();
-        store.delete_interaction(&iid).await.unwrap();
-        store.delete_interaction(&iid).await.unwrap();
-        assert!(
-            store
-                .list_interactions_by_contact(cid)
-                .await
-                .unwrap()
-                .is_empty()
-        );
-    }
-
     // ── ContactChannel tests ──────────────────────────────────────────────────
 
     #[tokio::test]
     async fn upsert_and_list_channels() {
         let store = MemoryCrmStore::new();
-        let cid = "c-4";
-        let ch = ContactChannel::new(cid, "telegram", "111");
-        store.upsert_channel(ch.clone()).await.unwrap();
-        let channels = store.list_channels_by_contact(cid).await.unwrap();
+        let c = Contact::new("Chan");
+        let contact_id = c.id.clone();
+        store.upsert(c).await.unwrap();
+        let ch = ContactChannel::new(&contact_id, "telegram", "tg-1");
+        store.upsert_channel(ch).await.unwrap();
+        let channels = store.list_channels_for_contact(&contact_id).await.unwrap();
         assert_eq!(channels.len(), 1);
-        assert_eq!(channels[0].id, ch.id);
     }
 
     #[tokio::test]
-    async fn get_channel_by_type_and_id_finds_channel() {
+    async fn get_channel_by_external() {
         let store = MemoryCrmStore::new();
-        let cid = "c-5";
-        let ch = ContactChannel::new(cid, "whatsapp", "+1234");
-        store.upsert_channel(ch.clone()).await.unwrap();
+        let c = Contact::new("Chan2");
+        let contact_id = c.id.clone();
+        store.upsert(c).await.unwrap();
+        let ch = ContactChannel::new(&contact_id, "slack", "U-999");
+        store.upsert_channel(ch).await.unwrap();
         let found = store
-            .get_channel_by_type_and_id("whatsapp", "+1234")
+            .get_channel_by_external("slack", "U-999")
             .await
             .unwrap()
             .unwrap();
-        assert_eq!(found.id, ch.id);
+        assert_eq!(found.contact_id, contact_id);
     }
 
     #[tokio::test]
     async fn delete_channel_is_idempotent() {
         let store = MemoryCrmStore::new();
-        let cid = "c-6";
-        let ch = ContactChannel::new(cid, "slack", "U001");
-        let chid = ch.id.clone();
+        let c = Contact::new("ChanDel");
+        store.upsert(c.clone()).await.unwrap();
+        let ch = ContactChannel::new(&c.id, "whatsapp", "wa-1");
+        let ch_id = ch.id.clone();
         store.upsert_channel(ch).await.unwrap();
-        store.delete_channel(&chid).await.unwrap();
-        store.delete_channel(&chid).await.unwrap();
+        store.delete_channel(&ch_id).await.unwrap();
+        store.delete_channel(&ch_id).await.unwrap();
         assert!(
             store
-                .list_channels_by_contact(cid)
+                .get_channel_by_external("whatsapp", "wa-1")
                 .await
                 .unwrap()
-                .is_empty()
+                .is_none()
         );
+    }
+
+    // ── Matter tests ──────────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn upsert_and_get_matter() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("MatterC");
+        let contact_id = c.id.clone();
+        store.upsert(c).await.unwrap();
+        let m = Matter::new(&contact_id, "IP Filing", PracticeArea::IntellectualProperty);
+        let mid = m.id.clone();
+        store.upsert_matter(m).await.unwrap();
+        let found = store.get_matter(&mid).await.unwrap().unwrap();
+        assert_eq!(found.title, "IP Filing");
+    }
+
+    #[tokio::test]
+    async fn list_matters_by_contact() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("MatterMulti");
+        let contact_id = c.id.clone();
+        store.upsert(c).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&contact_id, "M1", PracticeArea::Tax))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&contact_id, "M2", PracticeArea::RealEstate))
+            .await
+            .unwrap();
+        let matters = store.list_matters_by_contact(&contact_id).await.unwrap();
+        assert_eq!(matters.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn delete_matter_is_idempotent() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("MatterDel");
+        store.upsert(c.clone()).await.unwrap();
+        let m = Matter::new(&c.id, "To Delete", PracticeArea::Other);
+        let mid = m.id.clone();
+        store.upsert_matter(m).await.unwrap();
+        store.delete_matter(&mid).await.unwrap();
+        store.delete_matter(&mid).await.unwrap();
+        assert!(store.get_matter(&mid).await.unwrap().is_none());
+    }
+
+    // ── Interaction tests ─────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn upsert_and_get_interaction() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("IntC");
+        let contact_id = c.id.clone();
+        store.upsert(c).await.unwrap();
+        let i = Interaction::new(&contact_id, InteractionKind::Note, "Spoke briefly");
+        let iid = i.id.clone();
+        store.upsert_interaction(i).await.unwrap();
+        let found = store.get_interaction(&iid).await.unwrap().unwrap();
+        assert_eq!(found.summary, "Spoke briefly");
+    }
+
+    #[tokio::test]
+    async fn list_interactions_by_contact() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("IntMulti");
+        let contact_id = c.id.clone();
+        store.upsert(c).await.unwrap();
+        store
+            .upsert_interaction(Interaction::new(
+                &contact_id,
+                InteractionKind::Call,
+                "Call 1",
+            ))
+            .await
+            .unwrap();
+        store
+            .upsert_interaction(Interaction::new(
+                &contact_id,
+                InteractionKind::Meeting,
+                "Meeting 1",
+            ))
+            .await
+            .unwrap();
+        let interactions = store
+            .list_interactions_by_contact(&contact_id)
+            .await
+            .unwrap();
+        assert_eq!(interactions.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn list_interactions_by_matter() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("IntMatter");
+        let contact_id = c.id.clone();
+        store.upsert(c).await.unwrap();
+        let m = Matter::new(&contact_id, "The Matter", PracticeArea::Litigation);
+        let matter_id = m.id.clone();
+        store.upsert_matter(m).await.unwrap();
+        let mut i = Interaction::new(&contact_id, InteractionKind::Email, "Settlement email");
+        i.matter_id = Some(matter_id.clone());
+        store.upsert_interaction(i).await.unwrap();
+        let by_matter = store.list_interactions_by_matter(&matter_id).await.unwrap();
+        assert_eq!(by_matter.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn delete_interaction_is_idempotent() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("IntDel");
+        store.upsert(c.clone()).await.unwrap();
+        let i = Interaction::new(&c.id, InteractionKind::Document, "Doc");
+        let iid = i.id.clone();
+        store.upsert_interaction(i).await.unwrap();
+        store.delete_interaction(&iid).await.unwrap();
+        store.delete_interaction(&iid).await.unwrap();
+        assert!(store.get_interaction(&iid).await.unwrap().is_none());
     }
 }

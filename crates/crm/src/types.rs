@@ -1,12 +1,329 @@
-use serde::{Deserialize, Serialize};
+use {
+    secrecy::{ExposeSecret, Secret},
+    serde::{Deserialize, Serialize},
+};
+
+// ── Serde helpers for Secret<String> ─────────────────────────────────────────
+//
+// `Secret<String>` requires the `SerializableSecret` marker for its Serialize
+// impl as a security guardrail. We use explicit helpers instead.
+
+fn serialize_option_secret<S>(
+    secret: &Option<Secret<String>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match secret {
+        Some(s) => serializer.serialize_some(s.expose_secret()),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_option_secret<'de, D>(deserializer: D) -> Result<Option<Secret<String>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    Ok(opt.map(Secret::new))
+}
+
+// ── Contact stage ─────────────────────────────────────────────────────────────
+
+/// Lifecycle stage of a contact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ContactStage {
+    /// Initial outreach — not yet engaged.
+    #[default]
+    Lead,
+    /// Engaged but no active matter.
+    Prospect,
+    /// Has an open matter.
+    Active,
+    /// Previously active, currently dormant.
+    Inactive,
+    /// Relationship closed.
+    Closed,
+}
+
+impl ContactStage {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Lead => "lead",
+            Self::Prospect => "prospect",
+            Self::Active => "active",
+            Self::Inactive => "inactive",
+            Self::Closed => "closed",
+        }
+    }
+}
+
+impl std::fmt::Display for ContactStage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for ContactStage {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "lead" => Ok(Self::Lead),
+            "prospect" => Ok(Self::Prospect),
+            "active" => Ok(Self::Active),
+            "inactive" => Ok(Self::Inactive),
+            "closed" => Ok(Self::Closed),
+            other => Err(format!("unknown ContactStage: {other:?}")),
+        }
+    }
+}
+
+// ── Matter status ─────────────────────────────────────────────────────────────
+
+/// Lifecycle status of a matter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum MatterStatus {
+    /// Matter is actively being worked on.
+    #[default]
+    Open,
+    /// Matter is temporarily paused.
+    OnHold,
+    /// Matter has been resolved.
+    Closed,
+    /// Matter is archived (read-only).
+    Archived,
+}
+
+impl MatterStatus {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::OnHold => "on_hold",
+            Self::Closed => "closed",
+            Self::Archived => "archived",
+        }
+    }
+}
+
+impl std::fmt::Display for MatterStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for MatterStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "open" => Ok(Self::Open),
+            "on_hold" => Ok(Self::OnHold),
+            "closed" => Ok(Self::Closed),
+            "archived" => Ok(Self::Archived),
+            other => Err(format!("unknown MatterStatus: {other:?}")),
+        }
+    }
+}
+
+// ── Matter phase ──────────────────────────────────────────────────────────────
+
+/// Phase within the lifecycle of a matter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum MatterPhase {
+    /// Initial assessment and onboarding.
+    #[default]
+    Intake,
+    /// Gathering facts, evidence, or documents.
+    Discovery,
+    /// Active negotiation or dispute.
+    Negotiation,
+    /// Working toward or implementing a resolution.
+    Resolution,
+    /// Post-resolution review or appeal period.
+    Review,
+    /// Matter is fully closed.
+    Closed,
+}
+
+impl MatterPhase {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Intake => "intake",
+            Self::Discovery => "discovery",
+            Self::Negotiation => "negotiation",
+            Self::Resolution => "resolution",
+            Self::Review => "review",
+            Self::Closed => "closed",
+        }
+    }
+}
+
+impl std::fmt::Display for MatterPhase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for MatterPhase {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "intake" => Ok(Self::Intake),
+            "discovery" => Ok(Self::Discovery),
+            "negotiation" => Ok(Self::Negotiation),
+            "resolution" => Ok(Self::Resolution),
+            "review" => Ok(Self::Review),
+            "closed" => Ok(Self::Closed),
+            other => Err(format!("unknown MatterPhase: {other:?}")),
+        }
+    }
+}
+
+// ── Practice area ─────────────────────────────────────────────────────────────
+
+/// Practice area or domain of a matter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PracticeArea {
+    /// Business formation, M&A, contracts.
+    Corporate,
+    /// Employment law and labour relations.
+    Employment,
+    /// Family law, divorce, custody.
+    FamilyLaw,
+    /// Immigration and visa matters.
+    Immigration,
+    /// Patents, trademarks, copyrights.
+    IntellectualProperty,
+    /// Litigation and dispute resolution.
+    Litigation,
+    /// Real estate transactions and disputes.
+    RealEstate,
+    /// Tax planning and disputes.
+    Tax,
+    /// Catch-all for uncategorised matters.
+    #[default]
+    Other,
+}
+
+impl PracticeArea {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Corporate => "corporate",
+            Self::Employment => "employment",
+            Self::FamilyLaw => "family_law",
+            Self::Immigration => "immigration",
+            Self::IntellectualProperty => "intellectual_property",
+            Self::Litigation => "litigation",
+            Self::RealEstate => "real_estate",
+            Self::Tax => "tax",
+            Self::Other => "other",
+        }
+    }
+}
+
+impl std::fmt::Display for PracticeArea {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for PracticeArea {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "corporate" => Ok(Self::Corporate),
+            "employment" => Ok(Self::Employment),
+            "family_law" => Ok(Self::FamilyLaw),
+            "immigration" => Ok(Self::Immigration),
+            "intellectual_property" => Ok(Self::IntellectualProperty),
+            "litigation" => Ok(Self::Litigation),
+            "real_estate" => Ok(Self::RealEstate),
+            "tax" => Ok(Self::Tax),
+            "other" => Ok(Self::Other),
+            other => Err(format!("unknown PracticeArea: {other:?}")),
+        }
+    }
+}
+
+// ── Interaction kind ──────────────────────────────────────────────────────────
+
+/// The type of interaction recorded between the system and a contact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InteractionKind {
+    /// Phone or video call.
+    Call,
+    /// Email exchange.
+    Email,
+    /// Chat message (any channel).
+    Message,
+    /// In-person or virtual meeting.
+    Meeting,
+    /// Internal note.
+    Note,
+    /// Document shared or received.
+    Document,
+}
+
+impl InteractionKind {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Call => "call",
+            Self::Email => "email",
+            Self::Message => "message",
+            Self::Meeting => "meeting",
+            Self::Note => "note",
+            Self::Document => "document",
+        }
+    }
+}
+
+impl std::fmt::Display for InteractionKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for InteractionKind {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "call" => Ok(Self::Call),
+            "email" => Ok(Self::Email),
+            "message" => Ok(Self::Message),
+            "meeting" => Ok(Self::Meeting),
+            "note" => Ok(Self::Note),
+            "document" => Ok(Self::Document),
+            other => Err(format!("unknown InteractionKind: {other:?}")),
+        }
+    }
+}
+
+// ── Contact ───────────────────────────────────────────────────────────────────
 
 /// A contact in the CRM system.
 ///
 /// Contacts represent people or entities that interact with the system through
 /// any channel (Telegram, WhatsApp, Slack, etc.) or are imported from external
-/// sources. The `source` field records which channel or import path created
-/// the contact; a typed channel reference can be added in a later phase.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// sources.
+///
+/// PII fields (`email`, `phone`) are wrapped in [`Secret`] to prevent
+/// accidental exposure in logs and debug output.
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Contact {
     /// Unique identifier (UUID v4).
     pub id: String,
@@ -18,6 +335,23 @@ pub struct Contact {
     /// Identifier assigned by the external channel (e.g. Telegram user ID).
     #[serde(default)]
     pub external_id: Option<String>,
+    /// Email address — PII, redacted in debug output.
+    #[serde(
+        default,
+        serialize_with = "serialize_option_secret",
+        deserialize_with = "deserialize_option_secret"
+    )]
+    pub email: Option<Secret<String>>,
+    /// Phone number — PII, redacted in debug output.
+    #[serde(
+        default,
+        serialize_with = "serialize_option_secret",
+        deserialize_with = "deserialize_option_secret"
+    )]
+    pub phone: Option<Secret<String>>,
+    /// Lifecycle stage of this contact.
+    #[serde(default)]
+    pub stage: ContactStage,
     /// Arbitrary structured metadata stored as a JSON object.
     #[serde(default)]
     pub metadata: serde_json::Value,
@@ -25,6 +359,46 @@ pub struct Contact {
     pub created_at: u64,
     /// Unix timestamp (milliseconds) when the contact was last updated.
     pub updated_at: u64,
+}
+
+impl std::fmt::Debug for Contact {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Contact")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("source", &self.source)
+            .field("external_id", &self.external_id)
+            .field("email", &self.email.as_ref().map(|_| "[REDACTED]"))
+            .field("phone", &self.phone.as_ref().map(|_| "[REDACTED]"))
+            .field("stage", &self.stage)
+            .field("metadata", &self.metadata)
+            .field("created_at", &self.created_at)
+            .field("updated_at", &self.updated_at)
+            .finish()
+    }
+}
+
+impl PartialEq for Contact {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name == other.name
+            && self.source == other.source
+            && self.external_id == other.external_id
+            && opt_secret_eq(&self.email, &other.email)
+            && opt_secret_eq(&self.phone, &other.phone)
+            && self.stage == other.stage
+            && self.metadata == other.metadata
+            && self.created_at == other.created_at
+            && self.updated_at == other.updated_at
+    }
+}
+
+fn opt_secret_eq(a: &Option<Secret<String>>, b: &Option<Secret<String>>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(x), Some(y)) => x.expose_secret() == y.expose_secret(),
+        _ => false,
+    }
 }
 
 impl Contact {
@@ -37,6 +411,9 @@ impl Contact {
             name: name.into(),
             source: None,
             external_id: None,
+            email: None,
+            phone: None,
+            stage: ContactStage::default(),
             metadata: serde_json::Value::Object(serde_json::Map::new()),
             created_at: now,
             updated_at: now,
@@ -57,27 +434,84 @@ impl Contact {
     }
 }
 
+// ── ContactChannel ────────────────────────────────────────────────────────────
+
+/// A channel identity record linking a contact to an external platform.
+///
+/// A single contact can have multiple channel identities (e.g., the same
+/// person reachable on Telegram, WhatsApp, and email). The `channel_type`
+/// field holds the channel identifier string (e.g., `"telegram"`, `"slack"`).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ContactChannel {
+    /// Unique identifier (UUID v4).
+    pub id: String,
+    /// Contact this channel belongs to.
+    pub contact_id: String,
+    /// Channel type identifier (e.g. `"telegram"`, `"whatsapp"`, `"email"`).
+    pub channel_type: String,
+    /// Channel-native identifier for this contact (e.g. Telegram user ID).
+    pub channel_id: String,
+    /// Human-readable display name on this channel (e.g. username, email address).
+    #[serde(default)]
+    pub display_name: Option<String>,
+    /// Whether this channel identity has been verified.
+    #[serde(default)]
+    pub verified: bool,
+    /// Unix timestamp (milliseconds) when the record was created.
+    pub created_at: u64,
+    /// Unix timestamp (milliseconds) when the record was last updated.
+    pub updated_at: u64,
+}
+
+impl ContactChannel {
+    /// Create a new channel identity for a contact.
+    #[must_use]
+    pub fn new(
+        contact_id: impl Into<String>,
+        channel_type: impl Into<String>,
+        channel_id: impl Into<String>,
+    ) -> Self {
+        let now = now_ms();
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            contact_id: contact_id.into(),
+            channel_type: channel_type.into(),
+            channel_id: channel_id.into(),
+            display_name: None,
+            verified: false,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+}
+
 // ── Matter ────────────────────────────────────────────────────────────────────
 
-/// A matter in the CRM system.
+/// A legal matter or case optionally linked to a contact.
 ///
-/// Matters represent cases, deals, or topics being tracked. A matter may be
-/// optionally linked to a contact; matters that span multiple contacts can
-/// leave `contact_id` as `None`.
+/// `contact_id` is nullable: a matter may span multiple contacts or exist
+/// independently. When a contact is deleted the DB sets this to NULL via
+/// `ON DELETE SET NULL`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Matter {
     /// Unique identifier (UUID v4).
     pub id: String,
-    /// Human-readable title.
-    pub title: String,
-    /// Lifecycle status of the matter.
-    pub status: MatterStatus,
-    /// Optional contact this matter is primarily associated with.
+    /// Contact primarily associated with this matter, if any.
     #[serde(default)]
     pub contact_id: Option<String>,
-    /// Arbitrary structured metadata stored as a JSON object.
+    /// Short descriptive title.
+    pub title: String,
+    /// Optional longer description.
     #[serde(default)]
-    pub metadata: serde_json::Value,
+    pub description: Option<String>,
+    /// Current lifecycle status.
+    #[serde(default)]
+    pub status: MatterStatus,
+    /// Current phase within the matter lifecycle.
+    #[serde(default)]
+    pub phase: MatterPhase,
+    /// Practice area or domain of this matter.
+    pub practice_area: PracticeArea,
     /// Unix timestamp (milliseconds) when the matter was created.
     pub created_at: u64,
     /// Unix timestamp (milliseconds) when the matter was last updated.
@@ -85,200 +519,76 @@ pub struct Matter {
 }
 
 impl Matter {
-    /// Create a new open matter with the given title and auto-generated UUID.
+    /// Create a new matter linked to the given contact.
     #[must_use]
-    pub fn new(title: impl Into<String>) -> Self {
+    pub fn new(
+        contact_id: impl Into<String>,
+        title: impl Into<String>,
+        practice_area: PracticeArea,
+    ) -> Self {
         let now = now_ms();
         Self {
             id: uuid::Uuid::new_v4().to_string(),
+            contact_id: Some(contact_id.into()),
             title: title.into(),
-            status: MatterStatus::Open,
-            contact_id: None,
-            metadata: serde_json::Value::Object(serde_json::Map::new()),
+            description: None,
+            status: MatterStatus::default(),
+            phase: MatterPhase::default(),
+            practice_area,
             created_at: now,
             updated_at: now,
-        }
-    }
-
-    /// Create a new matter linked to a contact.
-    #[must_use]
-    pub fn for_contact(title: impl Into<String>, contact_id: impl Into<String>) -> Self {
-        let mut m = Self::new(title);
-        m.contact_id = Some(contact_id.into());
-        m
-    }
-}
-
-/// Lifecycle status of a [`Matter`].
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum MatterStatus {
-    /// Newly created; not yet being actively worked.
-    #[default]
-    Open,
-    /// Currently being worked.
-    InProgress,
-    /// Resolved or no longer active.
-    Closed,
-}
-
-impl MatterStatus {
-    /// String representation stored in the database.
-    #[must_use]
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Open => "open",
-            Self::InProgress => "in_progress",
-            Self::Closed => "closed",
-        }
-    }
-}
-
-impl TryFrom<&str> for MatterStatus {
-    type Error = crate::Error;
-
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        match s {
-            "open" => Ok(Self::Open),
-            "in_progress" => Ok(Self::InProgress),
-            "closed" => Ok(Self::Closed),
-            other => Err(crate::Error::invalid_field("status", other)),
         }
     }
 }
 
 // ── Interaction ───────────────────────────────────────────────────────────────
 
-/// A logged interaction with a contact.
-///
-/// Interactions record communications or activities: a message received, a call
-/// made, a meeting held, or a note added. Each interaction is tied to a contact
-/// and may optionally be linked to a [`Matter`].
+/// A recorded touchpoint between the system and a contact.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Interaction {
     /// Unique identifier (UUID v4).
     pub id: String,
-    /// Contact this interaction is with.
+    /// Contact involved in this interaction.
     pub contact_id: String,
-    /// Optional matter this interaction belongs to.
+    /// Optional matter this interaction relates to.
     #[serde(default)]
     pub matter_id: Option<String>,
-    /// The type of interaction.
+    /// Type of interaction.
     pub kind: InteractionKind,
-    /// Free-text body (e.g. message content, call summary, note).
+    /// Summary of what occurred.
+    pub summary: String,
+    /// Optional channel where the interaction took place (e.g. `"telegram"`).
     #[serde(default)]
-    pub body: Option<String>,
-    /// Arbitrary structured metadata stored as a JSON object.
-    #[serde(default)]
-    pub metadata: serde_json::Value,
-    /// Unix timestamp (milliseconds) when the interaction occurred / was recorded.
+    pub channel: Option<String>,
+    /// Unix timestamp (milliseconds) when the interaction was created.
     pub created_at: u64,
+    /// Unix timestamp (milliseconds) when the interaction was last updated.
+    pub updated_at: u64,
 }
 
 impl Interaction {
-    /// Create a new interaction with auto-generated UUID.
+    /// Create a new interaction for the given contact.
     #[must_use]
     pub fn new(
         contact_id: impl Into<String>,
         kind: InteractionKind,
-        body: impl Into<Option<String>>,
+        summary: impl Into<String>,
     ) -> Self {
+        let now = now_ms();
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             contact_id: contact_id.into(),
             matter_id: None,
             kind,
-            body: body.into(),
-            metadata: serde_json::Value::Object(serde_json::Map::new()),
-            created_at: now_ms(),
+            summary: summary.into(),
+            channel: None,
+            created_at: now,
+            updated_at: now,
         }
     }
 }
 
-/// The type of a logged [`Interaction`].
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum InteractionKind {
-    /// An inbound or outbound message (chat, email, SMS).
-    Message,
-    /// A phone or video call.
-    Call,
-    /// An in-person or virtual meeting.
-    Meeting,
-    /// A manually written note.
-    Note,
-}
-
-impl InteractionKind {
-    /// String representation stored in the database.
-    #[must_use]
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Message => "message",
-            Self::Call => "call",
-            Self::Meeting => "meeting",
-            Self::Note => "note",
-        }
-    }
-}
-
-impl TryFrom<&str> for InteractionKind {
-    type Error = crate::Error;
-
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        match s {
-            "message" => Ok(Self::Message),
-            "call" => Ok(Self::Call),
-            "meeting" => Ok(Self::Meeting),
-            "note" => Ok(Self::Note),
-            other => Err(crate::Error::invalid_field("kind", other)),
-        }
-    }
-}
-
-// ── ContactChannel ────────────────────────────────────────────────────────────
-
-/// A communication channel associated with a contact.
-///
-/// Each channel record maps a (`channel_type`, `channel_identifier`) pair — e.g.
-/// `("telegram", "123456789")` — to a single contact. The unique constraint on
-/// the pair is enforced at the database level.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ContactChannel {
-    /// Unique identifier (UUID v4).
-    pub id: String,
-    /// Contact this channel belongs to.
-    pub contact_id: String,
-    /// Channel type key (e.g. `"telegram"`, `"whatsapp"`, `"slack"`, `"email"`).
-    pub channel_type: String,
-    /// Channel-specific identifier (e.g. Telegram user ID, email address).
-    pub channel_identifier: String,
-    /// Whether the contact's ownership of this channel has been verified.
-    pub verified: bool,
-    /// Unix timestamp (milliseconds) when the channel was registered.
-    pub created_at: u64,
-}
-
-impl ContactChannel {
-    /// Create a new unverified channel for a contact.
-    #[must_use]
-    pub fn new(
-        contact_id: impl Into<String>,
-        channel_type: impl Into<String>,
-        channel_identifier: impl Into<String>,
-    ) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            contact_id: contact_id.into(),
-            channel_type: channel_type.into(),
-            channel_identifier: channel_identifier.into(),
-            verified: false,
-            created_at: now_ms(),
-        }
-    }
-}
-
-// ── helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 fn now_ms() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -288,10 +598,14 @@ fn now_ms() -> u64 {
         .as_millis() as u64
 }
 
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
+
+    // ── Contact tests ─────────────────────────────────────────────────────────
 
     #[test]
     fn new_contact_has_uuid() {
@@ -300,6 +614,9 @@ mod tests {
         assert_eq!(c.name, "Alice");
         assert!(c.source.is_none());
         assert!(c.external_id.is_none());
+        assert!(c.email.is_none());
+        assert!(c.phone.is_none());
+        assert_eq!(c.stage, ContactStage::Lead);
         assert!(c.created_at > 0);
         assert_eq!(c.created_at, c.updated_at);
     }
@@ -327,80 +644,173 @@ mod tests {
     }
 
     #[test]
-    fn matter_status_roundtrip() {
-        for (s, expected) in [
-            ("open", MatterStatus::Open),
-            ("in_progress", MatterStatus::InProgress),
-            ("closed", MatterStatus::Closed),
+    fn contact_pii_fields_serde_roundtrip() {
+        use secrecy::ExposeSecret;
+        let mut c = Contact::new("Dave");
+        c.email = Some(Secret::new("dave@example.com".to_owned()));
+        c.phone = Some(Secret::new("+15555550100".to_owned()));
+        let json = serde_json::to_string(&c).unwrap();
+        let c2: Contact = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            c2.email.as_ref().unwrap().expose_secret(),
+            "dave@example.com"
+        );
+        assert_eq!(c2.phone.as_ref().unwrap().expose_secret(), "+15555550100");
+    }
+
+    #[test]
+    fn contact_debug_redacts_pii() {
+        let mut c = Contact::new("Eve");
+        c.email = Some(Secret::new("eve@example.com".to_owned()));
+        c.phone = Some(Secret::new("+15555550200".to_owned()));
+        let debug = format!("{c:?}");
+        assert!(!debug.contains("eve@example.com"));
+        assert!(!debug.contains("+15555550200"));
+        assert!(debug.contains("[REDACTED]"));
+    }
+
+    // ── Enum round-trip tests ─────────────────────────────────────────────────
+
+    #[test]
+    fn contact_stage_roundtrip() {
+        for v in [
+            ContactStage::Lead,
+            ContactStage::Prospect,
+            ContactStage::Active,
+            ContactStage::Inactive,
+            ContactStage::Closed,
         ] {
-            let parsed = MatterStatus::try_from(s).unwrap();
-            assert_eq!(parsed, expected);
-            assert_eq!(parsed.as_str(), s);
+            assert_eq!(v.as_str().parse::<ContactStage>().unwrap(), v);
         }
     }
 
     #[test]
-    fn matter_status_invalid() {
-        assert!(MatterStatus::try_from("unknown").is_err());
+    fn matter_status_roundtrip() {
+        for v in [
+            MatterStatus::Open,
+            MatterStatus::OnHold,
+            MatterStatus::Closed,
+            MatterStatus::Archived,
+        ] {
+            assert_eq!(v.as_str().parse::<MatterStatus>().unwrap(), v);
+        }
+    }
+
+    #[test]
+    fn matter_phase_roundtrip() {
+        for v in [
+            MatterPhase::Intake,
+            MatterPhase::Discovery,
+            MatterPhase::Negotiation,
+            MatterPhase::Resolution,
+            MatterPhase::Review,
+            MatterPhase::Closed,
+        ] {
+            assert_eq!(v.as_str().parse::<MatterPhase>().unwrap(), v);
+        }
+    }
+
+    #[test]
+    fn practice_area_roundtrip() {
+        for v in [
+            PracticeArea::Corporate,
+            PracticeArea::Employment,
+            PracticeArea::FamilyLaw,
+            PracticeArea::Immigration,
+            PracticeArea::IntellectualProperty,
+            PracticeArea::Litigation,
+            PracticeArea::RealEstate,
+            PracticeArea::Tax,
+            PracticeArea::Other,
+        ] {
+            assert_eq!(v.as_str().parse::<PracticeArea>().unwrap(), v);
+        }
     }
 
     #[test]
     fn interaction_kind_roundtrip() {
-        for (s, expected) in [
-            ("message", InteractionKind::Message),
-            ("call", InteractionKind::Call),
-            ("meeting", InteractionKind::Meeting),
-            ("note", InteractionKind::Note),
+        for v in [
+            InteractionKind::Call,
+            InteractionKind::Email,
+            InteractionKind::Message,
+            InteractionKind::Meeting,
+            InteractionKind::Note,
+            InteractionKind::Document,
         ] {
-            let parsed = InteractionKind::try_from(s).unwrap();
-            assert_eq!(parsed, expected);
-            assert_eq!(parsed.as_str(), s);
+            assert_eq!(v.as_str().parse::<InteractionKind>().unwrap(), v);
         }
     }
 
     #[test]
-    fn interaction_kind_invalid() {
-        assert!(InteractionKind::try_from("sms").is_err());
+    fn enum_unknown_value_errors() {
+        assert!("bogus".parse::<ContactStage>().is_err());
+        assert!("bogus".parse::<MatterStatus>().is_err());
+        assert!("bogus".parse::<MatterPhase>().is_err());
+        assert!("bogus".parse::<PracticeArea>().is_err());
+        assert!("bogus".parse::<InteractionKind>().is_err());
     }
 
-    #[test]
-    fn new_matter_defaults() {
-        let m = Matter::new("Test matter");
-        assert!(!m.id.is_empty());
-        assert_eq!(m.title, "Test matter");
-        assert_eq!(m.status, MatterStatus::Open);
-        assert!(m.contact_id.is_none());
-        assert!(m.created_at > 0);
-        assert_eq!(m.created_at, m.updated_at);
-    }
+    // ── ContactChannel tests ──────────────────────────────────────────────────
 
     #[test]
-    fn matter_for_contact() {
-        let m = Matter::for_contact("A deal", "contact-uuid");
-        assert_eq!(m.contact_id.as_deref(), Some("contact-uuid"));
-    }
-
-    #[test]
-    fn new_interaction_defaults() {
-        let i = Interaction::new(
-            "contact-uuid",
-            InteractionKind::Message,
-            Some("hello".into()),
-        );
-        assert!(!i.id.is_empty());
-        assert_eq!(i.contact_id, "contact-uuid");
-        assert_eq!(i.kind, InteractionKind::Message);
-        assert_eq!(i.body.as_deref(), Some("hello"));
-        assert!(i.matter_id.is_none());
-    }
-
-    #[test]
-    fn new_channel_defaults() {
-        let ch = ContactChannel::new("contact-uuid", "telegram", "99999");
+    fn contact_channel_new() {
+        let ch = ContactChannel::new("cid-1", "telegram", "tg-999");
         assert!(!ch.id.is_empty());
-        assert_eq!(ch.contact_id, "contact-uuid");
+        assert_eq!(ch.contact_id, "cid-1");
         assert_eq!(ch.channel_type, "telegram");
-        assert_eq!(ch.channel_identifier, "99999");
+        assert_eq!(ch.channel_id, "tg-999");
+        assert!(ch.display_name.is_none());
         assert!(!ch.verified);
+    }
+
+    #[test]
+    fn contact_channel_serde_roundtrip() {
+        let ch = ContactChannel::new("cid-2", "slack", "U456");
+        let json = serde_json::to_string(&ch).unwrap();
+        let ch2: ContactChannel = serde_json::from_str(&json).unwrap();
+        assert_eq!(ch, ch2);
+    }
+
+    // ── Matter tests ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn matter_new_defaults() {
+        let m = Matter::new("cid-1", "Contract Review", PracticeArea::Corporate);
+        assert!(!m.id.is_empty());
+        assert_eq!(m.contact_id.as_deref(), Some("cid-1"));
+        assert_eq!(m.title, "Contract Review");
+        assert_eq!(m.status, MatterStatus::Open);
+        assert_eq!(m.phase, MatterPhase::Intake);
+        assert_eq!(m.practice_area, PracticeArea::Corporate);
+        assert!(m.description.is_none());
+    }
+
+    #[test]
+    fn matter_serde_roundtrip() {
+        let m = Matter::new("cid-3", "IP Dispute", PracticeArea::IntellectualProperty);
+        let json = serde_json::to_string(&m).unwrap();
+        let m2: Matter = serde_json::from_str(&json).unwrap();
+        assert_eq!(m, m2);
+    }
+
+    // ── Interaction tests ─────────────────────────────────────────────────────
+
+    #[test]
+    fn interaction_new_defaults() {
+        let i = Interaction::new("cid-1", InteractionKind::Call, "Intake call");
+        assert!(!i.id.is_empty());
+        assert_eq!(i.contact_id, "cid-1");
+        assert_eq!(i.kind, InteractionKind::Call);
+        assert_eq!(i.summary, "Intake call");
+        assert!(i.matter_id.is_none());
+        assert!(i.channel.is_none());
+    }
+
+    #[test]
+    fn interaction_serde_roundtrip() {
+        let i = Interaction::new("cid-4", InteractionKind::Email, "Sent retainer agreement");
+        let json = serde_json::to_string(&i).unwrap();
+        let i2: Interaction = serde_json::from_str(&json).unwrap();
+        assert_eq!(i, i2);
     }
 }
