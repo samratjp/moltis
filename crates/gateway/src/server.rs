@@ -1875,11 +1875,14 @@ pub async fn prepare_gateway(
         .await
         .expect("failed to run crm migrations");
 
-    // Wire CRM store into services.
+    // Wire live CRM service when the feature is enabled and CRM is configured.
     #[cfg(feature = "crm")]
     {
-        let crm_store = Arc::new(moltis_crm::SqliteCrmStore::new(db_pool.clone()));
-        services = services.with_crm_store(crm_store as Arc<dyn moltis_crm::CrmStore>);
+        if config.crm.enabled {
+            let crm_store = Arc::new(moltis_crm::SqliteCrmStore::new(db_pool.clone()));
+            let crm_svc = Arc::new(crate::crm_service::LiveCrmService::new(crm_store));
+            services = services.with_crm(crm_svc as Arc<dyn crate::services::CrmService>);
+        }
     }
 
     // Migrate plugins data into unified skills system (idempotent, non-fatal).
