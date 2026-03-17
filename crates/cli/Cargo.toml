@@ -102,10 +102,12 @@ tempfile = { workspace = true }
 [features]
 agent = ["moltis-gateway/agent", "moltis-web?/agent"]
 caldav = ["moltis-gateway/caldav"]
+crm    = ["moltis-gateway/crm"]
 default = [
   "agent",
   "caldav",
   "code-splitter",
+  "crm",
   "file-watcher",
   "graphql",
   "jemalloc",
