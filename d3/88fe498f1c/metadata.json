@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "d388fe498f1c",
+  "strategy": "manual-commit",
+  "branch": "CHA-52-data-retention-engine",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/channels/src/message_log.rs",
+    "crates/config/src/schema.rs",
+    "crates/config/src/template.rs",
+    "crates/config/src/validate.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/gateway/src/lib.rs",
+    "crates/gateway/src/message_log_store.rs",
+    "crates/gateway/src/retention.rs",
+    "crates/gateway/src/server.rs",
+    "crates/sessions/src/store.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d3/88fe498f1c/0/metadata.json",
+      "transcript": "/d3/88fe498f1c/0/full.jsonl",
+      "context": "/d3/88fe498f1c/0/context.md",
+      "content_hash": "/d3/88fe498f1c/0/content_hash.txt",
+      "prompt": "/d3/88fe498f1c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 191,
+    "cache_creation_tokens": 426175,
+    "cache_read_tokens": 14840192,
+    "output_tokens": 48641,
+    "api_call_count": 156
+  }
+}
