@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "6791208079ab",
+  "strategy": "manual-commit",
+  "branch": "CHA-10-sqlite-migrations",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "CLAUDE.md",
+    "crates/cli/Cargo.toml",
+    "crates/cli/src/db_commands.rs",
+    "crates/crm/migrations/20260317000000_init.sql",
+    "crates/crm/src/error.rs",
+    "crates/crm/src/lib.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/types.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/67/91208079ab/0/metadata.json",
+      "transcript": "/67/91208079ab/0/full.jsonl",
+      "context": "/67/91208079ab/0/context.md",
+      "content_hash": "/67/91208079ab/0/content_hash.txt",
+      "prompt": "/67/91208079ab/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 433,
+    "cache_creation_tokens": 229615,
+    "cache_read_tokens": 6712872,
+    "output_tokens": 56757,
+    "api_call_count": 82
+  }
+}

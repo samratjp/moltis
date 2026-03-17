@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "efe666481f5a",
+  "session_id": "6ce656a2-a6ab-435f-aab9-e5eae5a484c0",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-08T14:43:58.626124Z",
+  "branch": "tailscale-redirects",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "crates/web/src/assets/js/nodes-selector.js",
+    "crates/web/ui/e2e/specs/chat-abort.spec.js",
+    "crates/web/ui/e2e/specs/onboarding.spec.js"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "659a1b7bb896",
+  "token_usage": {
+    "input_tokens": 129,
+    "cache_creation_tokens": 140858,
+    "cache_read_tokens": 6691392,
+    "output_tokens": 20739,
+    "api_call_count": 105
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-08T14:43:57.476156Z",
+    "agent_lines": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 3,
+    "agent_percentage": 100
+  }
+}
