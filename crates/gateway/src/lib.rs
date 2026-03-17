@@ -57,6 +57,7 @@ pub mod push;
 #[cfg(feature = "push-notifications")]
 pub mod push_routes;
 pub mod request_throttle;
+pub mod retention;
 pub mod server;
 pub mod services;
 pub mod session;

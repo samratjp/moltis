@@ -530,6 +530,17 @@ fn build_schema_map() -> KnownKeys {
             ])),
         ),
         (
+            "data_retention",
+            Struct(HashMap::from([
+                ("enabled", Leaf),
+                ("schedule", Leaf),
+                ("dry_run", Leaf),
+                ("crm_interactions_days", Leaf),
+                ("message_log_days", Leaf),
+                ("sessions_days", Leaf),
+            ])),
+        ),
+        (
             "webhooks",
             Struct(HashMap::from([(
                 "rate_limit",

@@ -121,6 +121,11 @@ pub trait CrmStore: Send + Sync {
 
     /// Delete an interaction by ID. Returns `Ok(())` if not found (idempotent).
     async fn delete_interaction(&self, id: &str) -> Result<()>;
+
+    /// Delete all interactions whose `created_at` (epoch milliseconds) is older than
+    /// `cutoff_epoch_ms`. Returns the number of rows deleted.
+    #[must_use]
+    async fn delete_interactions_before(&self, cutoff_epoch_ms: i64) -> Result<u64>;
 }
 
 pub use crate::{store_memory::MemoryCrmStore, store_sqlite::SqliteCrmStore};

@@ -224,6 +224,7 @@ pub struct MoltisConfig {
     pub cron: CronConfig,
     pub caldav: CalDavConfig,
     pub crm: CrmConfig,
+    pub data_retention: DataRetentionConfig,
     pub webhooks: WebhooksConfig,
     /// Environment variables injected into the Moltis process at startup.
     /// Useful for API keys in Docker where you can't easily set env vars.
@@ -1078,6 +1079,43 @@ impl Default for CrmConfig {
             auto_create_contacts: true,
             default_practice_area: "other".into(),
             retention_days: None,
+        }
+    }
+}
+
+/// Data retention policy configuration.
+///
+/// Controls automatic purging of aged records from CRM, message log, and session
+/// stores. When `enabled` is `false` (the default) no data is ever deleted.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DataRetentionConfig {
+    /// Enable the data retention engine. Defaults to `false`.
+    pub enabled: bool,
+    /// Cron expression controlling when the retention sweep runs.
+    /// Defaults to `"0 3 * * *"` (daily at 03:00 server time).
+    pub schedule: String,
+    /// Dry-run mode: log what would be deleted without actually deleting.
+    /// Defaults to `false`.
+    pub dry_run: bool,
+    /// Retention period (days) for CRM interaction records.
+    /// Falls back to `crm.retention_days` when unset.
+    pub crm_interactions_days: Option<u64>,
+    /// Retention period (days) for message log entries.
+    pub message_log_days: Option<u64>,
+    /// Retention period (days) for session JSONL files.
+    pub sessions_days: Option<u64>,
+}
+
+impl Default for DataRetentionConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            schedule: "0 3 * * *".into(),
+            dry_run: false,
+            crm_interactions_days: None,
+            message_log_days: None,
+            sessions_days: None,
         }
     }
 }

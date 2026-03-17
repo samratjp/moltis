@@ -189,6 +189,42 @@ impl SessionStore {
         Ok(())
     }
 
+    /// Delete session JSONL files (and their media directories) last modified before
+    /// `cutoff`. Returns the number of sessions removed.
+    pub async fn cleanup_before(&self, cutoff: std::time::SystemTime) -> Result<u64> {
+        let base = self.base_dir.clone();
+        tokio::task::spawn_blocking(move || -> Result<u64> {
+            let Ok(entries) = fs::read_dir(&base) else {
+                return Ok(0);
+            };
+            let mut removed = 0u64;
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let name = entry.file_name().to_string_lossy().to_string();
+                if !name.ends_with(".jsonl") {
+                    continue;
+                }
+                let Ok(meta) = fs::metadata(&path) else {
+                    continue;
+                };
+                let Ok(modified) = meta.modified() else {
+                    continue;
+                };
+                if modified < cutoff && fs::remove_file(&path).is_ok() {
+                    // Also remove associated media directory.
+                    let key_raw = name.strip_suffix(".jsonl").unwrap_or(&name);
+                    let media_dir = base.join("media").join(key_raw);
+                    if media_dir.exists() {
+                        let _ = fs::remove_dir_all(&media_dir);
+                    }
+                    removed += 1;
+                }
+            }
+            Ok(removed)
+        })
+        .await?
+    }
+
     /// List all session keys by scanning JSONL files in the base directory.
     pub fn list_keys(&self) -> Vec<String> {
         let Ok(entries) = fs::read_dir(&self.base_dir) else {

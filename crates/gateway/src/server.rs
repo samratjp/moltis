@@ -4893,6 +4893,35 @@ pub async fn prepare_gateway(
         tracing::warn!("failed to start cron scheduler: {e}");
     }
 
+    // Spawn the data retention engine if enabled.
+    if config.data_retention.enabled {
+        #[cfg(feature = "crm")]
+        let retention_engine = {
+            let crm: Arc<dyn moltis_crm::store::CrmStore> =
+                Arc::new(moltis_crm::store::SqliteCrmStore::new(db_pool.clone()));
+            Arc::new(crate::retention::RetentionEngine::new(
+                config.data_retention.clone(),
+                config.crm.retention_days,
+                crm,
+                Arc::clone(&message_log),
+                Arc::clone(&session_store),
+            ))
+        };
+        #[cfg(not(feature = "crm"))]
+        let retention_engine = Arc::new(crate::retention::RetentionEngine::new(
+            config.data_retention.clone(),
+            None,
+            Arc::clone(&message_log),
+            Arc::clone(&session_store),
+        ));
+        crate::retention::RetentionEngine::spawn(retention_engine);
+        tracing::info!(
+            dry_run = config.data_retention.dry_run,
+            schedule = %config.data_retention.schedule,
+            "data retention engine started",
+        );
+    }
+
     // Upsert the built-in heartbeat job from config.
     // Use a fixed ID so run history persists across restarts.
     {
