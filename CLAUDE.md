@@ -409,22 +409,22 @@ This project uses [gstack](https://github.com/garrytan/gstack) — Garry Tan's o
 
 **For web browsing**: always use the `/browse` skill from gstack. Never use `mcp__claude-in-chrome__*` tools.
 
-Available skills:
+### Skills by Stokowski stage
 
-| Skill | Role | What it does |
-|-------|------|--------------|
-| `/plan-ceo-review` | Founder / CEO | Rethink the problem, find the 10-star product |
-| `/plan-eng-review` | Eng manager / tech lead | Architecture, data flow, edge cases, tests |
-| `/plan-design-review` | Senior product designer | Design audit — report only, never touches code |
-| `/review` | Paranoid staff engineer | Find bugs that pass CI but blow up in prod |
-| `/ship` | Release engineer | Sync main, run tests, push, open PR |
-| `/browse` | QA engineer | Headless browser: screenshots, clicks, forms |
-| `/qa` | QA + fix engineer | Test, find bugs, fix with atomic commits |
-| `/qa-only` | QA reporter | Bug report only — never modifies code |
-| `/qa-design-review` | Designer + frontend engineer | Design audit then fixes |
-| `/setup-browser-cookies` | Session manager | Import cookies from real browser for auth'd testing |
-| `/retro` | Engineering manager | Team retro with per-person praise and growth notes |
-| `/document-release` | Technical writer | Update README, ARCHITECTURE, CONTRIBUTING post-ship |
+| Stokowski stage | gstack skill | What it does |
+|-----------------|--------------|--------------|
+| `investigate` | `/plan-ceo-review` | Rethink the problem, find the 10-star product |
+| `investigate` | `/plan-eng-review` | Architecture, data flow, edge cases, tests |
+| `implement` | `/browse` | Headless browser: screenshots, clicks, forms |
+| `implement` | `/qa` | Test, find bugs, fix with atomic commits |
+| `implement` | `/qa-only` | Bug report only — never modifies code |
+| `implement` | `/qa-design-review` | Design audit then fixes |
+| `code-review` | `/review` | Find bugs that pass CI but blow up in prod |
+| `merge` | `/ship` | Sync main, run tests, push, open PR |
+| any | `/plan-design-review` | Design audit — report only, never touches code |
+| any | `/setup-browser-cookies` | Import cookies from real browser for auth'd testing |
+| post-ship | `/retro` | Team retro with per-person praise and growth notes |
+| post-ship | `/document-release` | Update README, ARCHITECTURE, CONTRIBUTING post-ship |
 
 **Teammates**: run `cd .claude/skills/gstack && ./setup` once to build the browser binary (requires [Bun](https://bun.sh/) v1.0+).
 
