@@ -194,6 +194,7 @@ sqlx migrations, each crate owns its `migrations/` directory. See `docs/sqlite-m
 | `moltis-sessions` | `sessions`, `channel_sessions` |
 | `moltis-cron` | `cron_jobs`, `cron_runs` |
 | `moltis-gateway` | `auth_*`, `passkeys`, `api_keys`, `env_variables`, `message_log`, `channels` |
+| `moltis-crm` | `crm_contacts`, `crm_matters`, `crm_interactions`, `crm_contact_channels` |
 | `moltis-memory` | `files`, `chunks`, `embedding_cache`, `chunks_fts` |
 
 New migration: `crates/<crate>/migrations/YYYYMMDDHHMMSS_description.sql` (use `IF NOT EXISTS`).

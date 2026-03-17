@@ -8,8 +8,10 @@ pub enum Error {
     Migration(#[from] sqlx::migrate::MigrateError),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error("contact not found: {id}")]
+    #[error("record not found: {id}")]
     NotFound { id: String },
+    #[error("invalid value for field '{field}': {value}")]
+    InvalidField { field: String, value: String },
     #[error("{context}: {source}")]
     External {
         context: String,
@@ -22,6 +24,14 @@ impl Error {
     #[must_use]
     pub fn not_found(id: impl Into<String>) -> Self {
         Self::NotFound { id: id.into() }
+    }
+
+    #[must_use]
+    pub fn invalid_field(field: impl Into<String>, value: impl Into<String>) -> Self {
+        Self::InvalidField {
+            field: field.into(),
+            value: value.into(),
+        }
     }
 
     #[must_use]
