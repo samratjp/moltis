@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "cf73a4d59610",
+  "strategy": "manual-commit",
+  "branch": "CHA-13-implement-crm-service",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs",
+    "crates/gateway/src/lib.rs",
+    "crates/gateway/src/methods/mod.rs",
+    "crates/gateway/src/methods/services.rs",
+    "crates/gateway/src/server.rs",
+    "crates/gateway/src/services.rs",
+    "crates/graphql/tests/integration.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cf/73a4d59610/0/metadata.json",
+      "transcript": "/cf/73a4d59610/0/full.jsonl",
+      "context": "/cf/73a4d59610/0/context.md",
+      "content_hash": "/cf/73a4d59610/0/content_hash.txt",
+      "prompt": "/cf/73a4d59610/0/prompt.txt"
+    },
+    {
+      "metadata": "/cf/73a4d59610/1/metadata.json",
+      "transcript": "/cf/73a4d59610/1/full.jsonl",
+      "context": "/cf/73a4d59610/1/context.md",
+      "content_hash": "/cf/73a4d59610/1/content_hash.txt",
+      "prompt": "/cf/73a4d59610/1/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 145,
+    "cache_creation_tokens": 391886,
+    "cache_read_tokens": 9565501,
+    "output_tokens": 48042,
+    "api_call_count": 113
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "cf73a4d59610",
+  "session_id": "e9c43b4a-ab70-4300-a201-db6e9edbf5e9",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T20:46:31.294362Z",
+  "branch": "CHA-13-implement-crm-service",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "fcd14aff3e0a",
+  "token_usage": {
+    "input_tokens": 142,
+    "cache_creation_tokens": 373144,
+    "cache_read_tokens": 9555873,
+    "output_tokens": 47168,
+    "api_call_count": 112
+  },
+  "summary": {
+    "intent": "Implement CrmService for the live store in the moltis Rust gateway (CHA-13), including the service trait, LiveCrmService implementation, gateway wiring, RPC method registration, and integration tests.",
+    "outcome": "Full CrmService implementation completed: trait + NoopCrmService added to service-traits, LiveCrmService wrapping SqliteCrmStore created, wired into GatewayServices and prepare_gateway, 15 crm.* RPC methods registered, methods added to READ_METHODS/WRITE_METHODS arrays. All tests pass and clippy is clean.",
+    "learnings": {
+      "repo": [
+        "ServiceResult is Result\u003cValue, ServiceError\u003e — error type is ServiceError::message(), NOT ErrorShape",
+        "GatewayServices uses a builder pattern with with_*() methods; to_services() clones all Arc\u003cdyn Trait\u003e into the Services bundle used by GraphQL",
+        "Services struct in service-traits and GatewayServices in gateway/src/services.rs are separate and both need crm field added",
+        "Feature gating uses #[cfg(feature = \"crm\")] blocks; the crm feature is already a default feature in gateway/Cargo.toml",
+        "CrmConfig.enabled is checked at wire-up time in prepare_gateway, not per-request",
+        "PII fields (email, phone) are Secret\u003cString\u003e in domain types; exposed via ExposeSecret at the service boundary when serializing to JSON",
+        "The moltis-web crate has a pre-existing CSS compile error unrelated to Rust workspace compilation — exclude it with --exclude moltis-web",
+        "READ_METHODS and WRITE_METHODS are const arrays in methods/mod.rs that control auth scoping for RPC methods",
+        "RPC methods follow crm.{entity}.{action} namespace convention, registered in methods/services.rs after existing cron.* entries",
+        "Stokowski orchestrator may send the same lifecycle prompt multiple times (retries on API 500/529 errors) — the agent must be idempotent"
+      ],
+      "code": [
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "finding": "ServiceResult = Result\u003cValue, ServiceError\u003e; ServiceError::message(string) is the constructor for errors"
+        },
+        {
+          "path": "crates/gateway/src/services.rs",
+          "finding": "GatewayServices has noop(), with_*() builders, and to_services() that maps to the service-traits Services bundle"
+        },
+        {
+          "path": "crates/gateway/src/methods/mod.rs",
+          "line": 89,
+          "end_line": 89,
+          "finding": "CRM read methods inserted after 'cron.runs' entry"
+        },
+        {
+          "path": "crates/gateway/src/methods/mod.rs",
+          "line": 213,
+          "end_line": 213,
+          "finding": "CRM write methods inserted after 'cron.run' entry"
+        },
+        {
+          "path": "crates/graphql/tests/integration.rs",
+          "finding": "Had a clippy warning that needed fixing — unrelated to CRM but caught by the quality gate run"
+        }
+      ],
+      "workflow": [
+        "Read all relevant files before writing any code — the error type mismatch (ErrorShape vs ServiceError) was caught by reading service-traits before writing crm_service.rs",
+        "Arc is already imported at the top of server.rs — redundant local use inside cfg blocks causes clippy warnings",
+        "Run cargo check first, then tests, then clippy — check catches compile errors faster than clippy",
+        "The autonomous agent pattern requires checking for pre-existing branch/PR before creating new ones to avoid duplicates on rework runs"
+      ]
+    },
+    "friction": [
+      "Anthropic API returned HTTP 500 internal server errors and 529 overloaded errors repeatedly during the investigation stage, causing Stokowski to retry the same prompt 8+ times before succeeding",
+      "LINEAR_API_KEY env var was not inherited by bash subprocess spawned from the agent, requiring workarounds to post Linear comments",
+      "ServiceResult error type was initially wrong (used ErrorShape instead of ServiceError), requiring a full rewrite of crm_service.rs",
+      "Context window exhausted mid-implementation (during methods/mod.rs edit), requiring session continuation from summary",
+      "moltis-web pre-existing CSS compile error means --exclude moltis-web must be used for all cargo commands"
+    ],
+    "open_items": [
+      "REST endpoints /api/crm/... deferred — investigation noted these should be added later per CLAUDE.md convention",
+      "list_interactions currently requires either contactId or matterId param — no global interaction listing endpoint",
+      "Config validation: CrmConfig presence in build_schema_map() and check_semantic_warnings() was noted as a risk but not verified",
+      "PR creation and Linear workpad update were the final steps at context cutoff — unclear if these completed successfully"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T20:45:57.438385Z",
+    "agent_lines": 754,
+    "human_added": 233,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 987,
+    "agent_percentage": 76.39311043566363
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-13/e9c43b4a-ab70-4300-a201-db6e9edbf5e9.jsonl"
+}
