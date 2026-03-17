@@ -521,6 +521,15 @@ fn build_schema_map() -> KnownKeys {
             ])),
         ),
         (
+            "crm",
+            Struct(HashMap::from([
+                ("enabled", Leaf),
+                ("auto_create_contacts", Leaf),
+                ("default_practice_area", Leaf),
+                ("retention_days", Leaf),
+            ])),
+        ),
+        (
             "webhooks",
             Struct(HashMap::from([(
                 "rate_limit",
@@ -1236,6 +1245,31 @@ fn check_semantic_warnings(config: &MoltisConfig, diagnostics: &mut Vec<Diagnost
                 ),
             });
         }
+    }
+
+    // Unknown CRM default practice area
+    let valid_practice_areas = [
+        "corporate",
+        "employment",
+        "family_law",
+        "immigration",
+        "intellectual_property",
+        "litigation",
+        "real_estate",
+        "tax",
+        "other",
+    ];
+    if !valid_practice_areas.contains(&config.crm.default_practice_area.as_str()) {
+        diagnostics.push(Diagnostic {
+            severity: Severity::Warning,
+            category: "unknown-field",
+            path: "crm.default_practice_area".into(),
+            message: format!(
+                "unknown practice area \"{}\"; expected one of: {}",
+                config.crm.default_practice_area,
+                valid_practice_areas.join(", ")
+            ),
+        });
     }
 
     // Unknown CalDAV provider
@@ -2574,6 +2608,107 @@ tool_mode = "{mode}"
             unknown.is_none(),
             "reasoning_effort should be a recognized field, got: {:?}",
             result.diagnostics
+        );
+    }
+
+    // ── CRM config tests ──────────────────────────────────────────────────────
+
+    #[test]
+    fn crm_default_deserialization() {
+        let result = validate_toml_str("");
+        assert!(
+            !result.has_errors(),
+            "empty config should produce no errors, got: {:?}",
+            result.diagnostics
+        );
+        let config = toml::from_str::<MoltisConfig>("").unwrap();
+        assert!(!config.crm.enabled);
+        assert!(config.crm.auto_create_contacts);
+        assert_eq!(config.crm.default_practice_area, "other");
+        assert!(config.crm.retention_days.is_none());
+    }
+
+    #[test]
+    fn crm_valid_practice_area_no_warning() {
+        for area in [
+            "corporate",
+            "employment",
+            "family_law",
+            "immigration",
+            "intellectual_property",
+            "litigation",
+            "real_estate",
+            "tax",
+            "other",
+        ] {
+            let toml = format!("[crm]\ndefault_practice_area = \"{area}\"\n");
+            let result = validate_toml_str(&toml);
+            let warning = result
+                .diagnostics
+                .iter()
+                .find(|d| d.path == "crm.default_practice_area");
+            assert!(
+                warning.is_none(),
+                "expected no warning for valid practice area '{area}', got: {:?}",
+                result.diagnostics
+            );
+        }
+    }
+
+    #[test]
+    fn crm_unknown_practice_area_warned() {
+        let toml = r#"
+[crm]
+default_practice_area = "bankruptcy"
+"#;
+        let result = validate_toml_str(toml);
+        let warning = result
+            .diagnostics
+            .iter()
+            .find(|d| d.path == "crm.default_practice_area");
+        assert!(
+            warning.is_some(),
+            "expected warning for unknown practice area 'bankruptcy'"
+        );
+        assert_eq!(warning.unwrap().severity, Severity::Warning);
+    }
+
+    #[test]
+    fn crm_full_config_parses_without_errors() {
+        let toml = r#"
+[crm]
+enabled = true
+auto_create_contacts = false
+default_practice_area = "litigation"
+retention_days = 365
+"#;
+        let result = validate_toml_str(toml);
+        assert!(
+            !result.has_errors(),
+            "valid crm config should not produce errors, got: {:?}",
+            result.diagnostics
+        );
+        let config = toml::from_str::<MoltisConfig>(toml).unwrap();
+        assert!(config.crm.enabled);
+        assert!(!config.crm.auto_create_contacts);
+        assert_eq!(config.crm.default_practice_area, "litigation");
+        assert_eq!(config.crm.retention_days, Some(365));
+    }
+
+    #[test]
+    fn crm_unknown_field_detected() {
+        let toml = r#"
+[crm]
+enabledd = true
+"#;
+        let result = validate_toml_str(toml);
+        let unknown = result
+            .diagnostics
+            .iter()
+            .find(|d| d.category == "unknown-field" && d.path == "crm.enabledd");
+        assert!(
+            unknown.is_some(),
+            "expected unknown-field diagnostic for 'crm.enabledd'"
         );
     }
 }
