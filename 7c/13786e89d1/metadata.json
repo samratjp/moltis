@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7c13786e89d1",
+  "strategy": "manual-commit",
+  "branch": "CHA-14-crm-config-schema",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/config/src/schema.rs",
+    "crates/config/src/template.rs",
+    "crates/config/src/validate.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7c/13786e89d1/0/metadata.json",
+      "transcript": "/7c/13786e89d1/0/full.jsonl",
+      "context": "/7c/13786e89d1/0/context.md",
+      "content_hash": "/7c/13786e89d1/0/content_hash.txt",
+      "prompt": "/7c/13786e89d1/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 11,
+    "cache_creation_tokens": 42442,
+    "cache_read_tokens": 218677,
+    "output_tokens": 2304,
+    "api_call_count": 7
+  }
+}
