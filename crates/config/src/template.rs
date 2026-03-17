@@ -572,6 +572,20 @@ reset_on_exit = true              # Reset serve/funnel when gateway shuts down
 # api_key = "..."                 # API key (optional for local endpoints like Ollama)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# CRM
+# ══════════════════════════════════════════════════════════════════════════════
+# Contact Relationship Management — tracks contacts, matters, and interactions.
+
+[crm]
+enabled = false                   # Enable the CRM module
+auto_create_contacts = true       # Automatically create contacts from channel interactions
+default_practice_area = "other"   # Default practice area for new matters:
+                                  #   "corporate", "employment", "family_law", "immigration",
+                                  #   "intellectual_property", "litigation", "real_estate",
+                                  #   "tax", "other"
+# retention_days = 365            # Days to retain interaction records (omit = keep forever)
+
+# ══════════════════════════════════════════════════════════════════════════════
 # CHANNELS
 # ══════════════════════════════════════════════════════════════════════════════
 # External messaging integrations.

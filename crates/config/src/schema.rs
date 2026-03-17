@@ -223,6 +223,7 @@ pub struct MoltisConfig {
     pub voice: VoiceConfig,
     pub cron: CronConfig,
     pub caldav: CalDavConfig,
+    pub crm: CrmConfig,
     pub webhooks: WebhooksConfig,
     /// Environment variables injected into the Moltis process at startup.
     /// Useful for API keys in Docker where you can't easily set env vars.
@@ -1043,6 +1044,42 @@ impl std::fmt::Debug for CalDavAccountConfig {
 
 fn default_caldav_timeout() -> u64 {
     30
+}
+
+/// CRM (Contact Relationship Management) configuration.
+///
+/// Controls the CRM module that tracks contacts, matters, and interactions
+/// arising from channel conversations.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CrmConfig {
+    /// Whether the CRM module is enabled. Defaults to `false`.
+    pub enabled: bool,
+    /// Automatically create contacts from channel interactions when no matching
+    /// contact is found. Defaults to `true`.
+    pub auto_create_contacts: bool,
+    /// Default practice area assigned to new matters.
+    ///
+    /// Valid values (snake_case): `"corporate"`, `"employment"`, `"family_law"`,
+    /// `"immigration"`, `"intellectual_property"`, `"litigation"`,
+    /// `"real_estate"`, `"tax"`, `"other"`.
+    ///
+    /// Defaults to `"other"`.
+    pub default_practice_area: String,
+    /// Number of days to retain interaction records.
+    /// `None` (the default) means records are kept forever.
+    pub retention_days: Option<u64>,
+}
+
+impl Default for CrmConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            auto_create_contacts: true,
+            default_practice_area: "other".into(),
+            retention_days: None,
+        }
+    }
 }
 
 /// Tailscale Serve/Funnel configuration.
