@@ -1,0 +1,96 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "6791208079ab",
+  "session_id": "affa34d2-6b21-45bc-afd6-afd5ec882144",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T16:29:18.408903Z",
+  "branch": "CHA-10-sqlite-migrations",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/crm/migrations/20260317000000_init.sql",
+    "crates/crm/src/types.rs",
+    "crates/crm/src/error.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/lib.rs",
+    "crates/cli/Cargo.toml",
+    "crates/cli/src/db_commands.rs",
+    "CLAUDE.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "682c0059a5b1",
+  "token_usage": {
+    "input_tokens": 433,
+    "cache_creation_tokens": 229615,
+    "cache_read_tokens": 6712872,
+    "output_tokens": 56757,
+    "api_call_count": 82
+  },
+  "summary": {
+    "intent": "Investigate and implement SQLite migrations for the CRM crate (CHA-10), adding four crm_* tables with proper schema, store implementations, and CLI migration support.",
+    "outcome": "Successfully implemented all four crm_* tables (crm_contacts, crm_matters, crm_interactions, crm_contact_channels), extended the CrmStore trait and both SQLite/memory implementations, fixed CLI db_commands gaps, and passed all 45 CRM + 5 CLI tests with a clean PR created.",
+    "learnings": {
+      "repo": [
+        "The project uses a multi-crate Rust workspace with feature-gated crate integration in server.rs and cli/Cargo.toml",
+        "SQLite migrations use sqlx::migrate! with set_ignore_missing(true), allowing safe modification of existing init migrations when no production DBs exist",
+        "The crm_ prefix convention is enforced to avoid namespace collisions since multiple crates share the same moltis.db database",
+        "CLI db_commands.rs had a known gap: vault and CRM migrations were missing from both run_migrations() and clear_databases()",
+        "Pinned nightly toolchain is required for rustfmt — cargo fmt must use that toolchain explicitly",
+        "CLAUDE.md maintains a crate-to-table mapping that must be updated when new tables are added"
+      ],
+      "code": [
+        {
+          "path": "crates/cli/src/db_commands.rs",
+          "line": 71,
+          "end_line": 88,
+          "finding": "clear_databases() was missing vault and CRM tables — needed to extend the table list"
+        },
+        {
+          "path": "crates/cli/src/db_commands.rs",
+          "line": 147,
+          "end_line": 178,
+          "finding": "run_migrations() was missing vault and CRM migration calls — both needed adding with cfg feature gates"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "All SQL queries referenced 'contacts' table name and needed updating to 'crm_contacts'"
+        },
+        {
+          "path": "crates/crm/migrations/20260317000000_init.sql",
+          "finding": "Single migration file handles all four tables in correct FK dependency order — simpler than separate files for a single crate"
+        }
+      ],
+      "workflow": [
+        "Rust cold builds are slow — implement all file changes before waiting for compile results to avoid blocking on build times",
+        "The Edit tool requires a prior Read in the same conversation; skipping the Read causes tool failures",
+        "Linear MCP integration (mcp__plugin_context-mode_context-mode__ctx_execute) is the mechanism for posting workpad/investigation comments to Linear issues",
+        "Using cfg-gated feature flags in vec! macros is awkward — extending a base vec conditionally is cleaner",
+        "Running clippy per-crate (cargo clippy -p \u003ccrate\u003e) is faster than workspace-wide checks during iterative development"
+      ]
+    },
+    "friction": [
+      "Rust cold builds took long enough that the agent had to proceed with implementation without confirming the baseline compiled clean",
+      "Write tool requires a prior Read — the agent hit an error trying to Write types.rs without re-reading it after the session context shifted",
+      "LINEAR_API_KEY was not available in the shell environment, requiring MCP plugin calls instead of direct API usage",
+      "cfg-gated table list in vec! was syntactically awkward, requiring a refactor to use extend() instead",
+      "Multiple Edit attempts on db_commands.rs (\u003e3 edits) due to the complexity of adding cfg-gated code blocks cleanly"
+    ],
+    "open_items": [
+      "Schema design for crm_matters status enum values was not fully specified in the issue — chosen values may need revisiting",
+      "crm_contact_channels composite PK vs separate id decision was made without explicit issue guidance",
+      "Vault migrations were added to CLI db_commands.rs as part of this fix, but vault-specific testing of that path was not explicitly verified",
+      "Any existing developer databases with the old 'contacts' table name require a manual 'moltis db reset' — no migration path provided for existing dev environments"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T16:28:51.166922Z",
+    "agent_lines": 1205,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1206,
+    "agent_percentage": 99.91708126036484
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-10/affa34d2-6b21-45bc-afd6-afd5ec882144.jsonl"
+}

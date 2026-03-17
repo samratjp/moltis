@@ -1,0 +1,29 @@
+commit push create a PR
+
+---
+
+I use https://entire.io/ but it creates a large .entire directory, should this be git ignored? What does https://docs.entire.io/introduction say?
+
+---
+
+Is that what the entire documentation say? Why do I have this directory?
+
+---
+
+ok add the .entire directory, commit and push
+
+---
+
+Looking at entire documentation, anything I should put in entire settings?
+
+---
+
+Yes create it
+
+---
+
+Yes, I guess it is better to upgrade
+
+---
+
+commit and push

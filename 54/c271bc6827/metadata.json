@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "54c271bc6827",
+  "strategy": "manual-commit",
+  "branch": "soul-location",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/config/src/loader.rs",
+    "crates/gateway/src/server.rs",
+    "crates/node-host/src/service.rs",
+    "crates/onboarding/src/service.rs",
+    "crates/swift-bridge/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/54/c271bc6827/0/metadata.json",
+      "transcript": "/54/c271bc6827/0/full.jsonl",
+      "context": "/54/c271bc6827/0/context.md",
+      "content_hash": "/54/c271bc6827/0/content_hash.txt",
+      "prompt": "/54/c271bc6827/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 22,
+    "cache_creation_tokens": 163309,
+    "cache_read_tokens": 2937827,
+    "output_tokens": 185,
+    "api_call_count": 20
+  }
+}
