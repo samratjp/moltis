@@ -402,3 +402,31 @@ For more details, see README.md and docs/QUICKSTART.md.
 - If push fails, resolve and retry until it succeeds
 
 <!-- END BEADS INTEGRATION -->
+
+## gstack
+
+This project uses [gstack](https://github.com/garrytan/gstack) — Garry Tan's opinionated Claude Code workflow skills.
+
+**For web browsing**: always use the `/browse` skill from gstack. Never use `mcp__claude-in-chrome__*` tools.
+
+### Skills by Stokowski stage
+
+| Stokowski stage | gstack skill | What it does |
+|-----------------|--------------|--------------|
+| `investigate` | `/plan-ceo-review` | Rethink the problem, find the 10-star product |
+| `investigate` | `/plan-eng-review` | Architecture, data flow, edge cases, tests |
+| `implement` | `/browse` | Headless browser: screenshots, clicks, forms |
+| `implement` | `/qa` | Test, find bugs, fix with atomic commits |
+| `implement` | `/qa-only` | Bug report only — never modifies code |
+| `implement` | `/qa-design-review` | Design audit then fixes |
+| `code-review` | `/review` | Find bugs that pass CI but blow up in prod |
+| `merge` | `/ship` | Sync main, run tests, push, open PR |
+| `investigate` | `/design-consultation` | Research competitors, propose design system |
+| any | `/plan-design-review` | Design audit — report only, never touches code |
+| any | `/setup-browser-cookies` | Import cookies from real browser for auth'd testing |
+| post-ship | `/retro` | Team retro with per-person praise and growth notes |
+| post-ship | `/document-release` | Update README, ARCHITECTURE, CONTRIBUTING post-ship |
+
+**Teammates**: run `cd .claude/skills/gstack && ./setup` once to build the browser binary (requires [Bun](https://bun.sh/) v1.0+).
+
+**Upgrade**: run `/gstack-upgrade` in Claude Code.
