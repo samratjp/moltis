@@ -2,7 +2,10 @@ use async_trait::async_trait;
 
 use crate::{
     Result,
-    types::{Contact, ContactChannel, Interaction, Matter},
+    types::{
+        Contact, ContactChannel, ContactStage, ContactWithChannels, Interaction, Matter,
+        PracticeArea,
+    },
 };
 
 /// Persistence trait for CRM data.
@@ -17,6 +20,20 @@ pub trait CrmStore: Send + Sync {
     /// Return all contacts ordered by most-recently-updated first.
     async fn list(&self) -> Result<Vec<Contact>>;
 
+    /// Return contacts matching optional filters, with pagination.
+    ///
+    /// - `stage` — if set, only contacts in this stage are returned.
+    /// - `search` — if set, filters by a case-insensitive substring match
+    ///   against `name`, `email`, and `phone`.
+    /// - `offset` / `limit` — pagination (default: 0 / 50).
+    async fn list_filtered(
+        &self,
+        stage: Option<ContactStage>,
+        search: Option<&str>,
+        offset: u64,
+        limit: u64,
+    ) -> Result<Vec<Contact>>;
+
     /// Return a single contact by ID, or `None` if not found.
     async fn get(&self, id: &str) -> Result<Option<Contact>>;
 
@@ -28,6 +45,19 @@ pub trait CrmStore: Send + Sync {
 
     /// Delete a contact by ID. Returns `Ok(())` if not found (idempotent).
     async fn delete(&self, id: &str) -> Result<()>;
+
+    /// Return a contact together with all its channel identities.
+    ///
+    /// Provides the common view of a contact and its communication channels in
+    /// one call rather than two. Default implementation calls [`Self::get`] and
+    /// [`Self::list_channels_for_contact`].
+    async fn get_with_channels(&self, id: &str) -> Result<Option<ContactWithChannels>> {
+        let Some(contact) = self.get(id).await? else {
+            return Ok(None);
+        };
+        let channels = self.list_channels_for_contact(id).await?;
+        Ok(Some(ContactWithChannels { contact, channels }))
+    }
 
     // ── Contact channels ──────────────────────────────────────────────────────
 
@@ -51,6 +81,17 @@ pub trait CrmStore: Send + Sync {
 
     /// Return all matters ordered by most-recently-updated first.
     async fn list_matters(&self) -> Result<Vec<Matter>>;
+
+    /// Return matters matching optional filters.
+    ///
+    /// Both filters are optional and can be combined:
+    /// - `contact_id` — if set, only matters for this contact are returned.
+    /// - `practice_area` — if set, only matters with this practice area are returned.
+    async fn list_matters_filtered(
+        &self,
+        contact_id: Option<&str>,
+        practice_area: Option<PracticeArea>,
+    ) -> Result<Vec<Matter>>;
 
     /// Return all matters for a contact, ordered by most-recently-updated first.
     async fn list_matters_by_contact(&self, contact_id: &str) -> Result<Vec<Matter>>;

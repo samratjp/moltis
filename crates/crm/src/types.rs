@@ -588,6 +588,20 @@ impl Interaction {
     }
 }
 
+// ── Composite query results ───────────────────────────────────────────────────
+
+/// A contact bundled with all of its channel identities.
+///
+/// Returned by [`CrmStore::get_with_channels`] to avoid two round-trips for
+/// the common case of loading a contact and its associated channels together.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContactWithChannels {
+    /// The contact record.
+    pub contact: Contact,
+    /// All channel identities linked to this contact.
+    pub channels: Vec<ContactChannel>,
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 fn now_ms() -> u64 {

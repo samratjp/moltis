@@ -9,6 +9,11 @@ use crate::{
     },
 };
 
+const SELECT_CONTACTS: &str = "SELECT id, name, source, external_id, email, phone, stage, metadata, created_at, updated_at FROM crm_contacts";
+const SELECT_MATTERS: &str = "SELECT id, contact_id, title, description, status, phase, practice_area, created_at, updated_at FROM crm_matters";
+const SELECT_INTERACTIONS: &str = "SELECT id, contact_id, matter_id, kind, summary, channel, created_at, updated_at FROM crm_interactions";
+const SELECT_CHANNELS: &str = "SELECT id, contact_id, channel_type, channel_id, display_name, verified, created_at, updated_at FROM crm_contact_channels";
+
 /// SQLite-backed implementation of [`CrmStore`].
 pub struct SqliteCrmStore {
     pool: SqlitePool,
@@ -169,33 +174,57 @@ impl CrmStore for SqliteCrmStore {
     // ── Contacts ──────────────────────────────────────────────────────────────
 
     async fn list(&self) -> Result<Vec<Contact>> {
-        let rows = sqlx::query_as::<_, ContactRow>(
-            "SELECT id, name, source, external_id, email, phone, stage, metadata, \
-             created_at, updated_at FROM crm_contacts ORDER BY updated_at DESC",
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let rows =
+            sqlx::query_as::<_, ContactRow>(&format!("{SELECT_CONTACTS} ORDER BY updated_at DESC"))
+                .fetch_all(&self.pool)
+                .await?;
 
         rows.into_iter().map(Contact::try_from).collect()
     }
 
+    async fn list_filtered(
+        &self,
+        stage: Option<ContactStage>,
+        search: Option<&str>,
+        offset: u64,
+        limit: u64,
+    ) -> Result<Vec<Contact>> {
+        let mut sql = format!("{SELECT_CONTACTS} WHERE 1=1");
+        if stage.is_some() {
+            sql.push_str(" AND stage = ?");
+        }
+        if search.is_some() {
+            sql.push_str(" AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)");
+        }
+        sql.push_str(" ORDER BY updated_at DESC LIMIT ? OFFSET ?");
+
+        let mut q = sqlx::query_as::<_, ContactRow>(&sql);
+        if let Some(s) = stage {
+            q = q.bind(s.as_str());
+        }
+        if let Some(term) = search {
+            let pattern = format!("%{term}%");
+            q = q.bind(pattern.clone()).bind(pattern.clone()).bind(pattern);
+        }
+        q = q.bind(limit as i64).bind(offset as i64);
+
+        let rows = q.fetch_all(&self.pool).await?;
+        rows.into_iter().map(Contact::try_from).collect()
+    }
+
     async fn get(&self, id: &str) -> Result<Option<Contact>> {
-        let row = sqlx::query_as::<_, ContactRow>(
-            "SELECT id, name, source, external_id, email, phone, stage, metadata, \
-             created_at, updated_at FROM crm_contacts WHERE id = ?",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let row = sqlx::query_as::<_, ContactRow>(&format!("{SELECT_CONTACTS} WHERE id = ?"))
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         row.map(Contact::try_from).transpose()
     }
 
     async fn get_by_external(&self, source: &str, external_id: &str) -> Result<Option<Contact>> {
-        let row = sqlx::query_as::<_, ContactRow>(
-            "SELECT id, name, source, external_id, email, phone, stage, metadata, \
-             created_at, updated_at FROM crm_contacts WHERE source = ? AND external_id = ?",
-        )
+        let row = sqlx::query_as::<_, ContactRow>(&format!(
+            "{SELECT_CONTACTS} WHERE source = ? AND external_id = ?"
+        ))
         .bind(source)
         .bind(external_id)
         .fetch_optional(&self.pool)
@@ -247,11 +276,9 @@ impl CrmStore for SqliteCrmStore {
     // ── Contact channels ──────────────────────────────────────────────────────
 
     async fn list_channels_for_contact(&self, contact_id: &str) -> Result<Vec<ContactChannel>> {
-        let rows = sqlx::query_as::<_, ContactChannelRow>(
-            "SELECT id, contact_id, channel_type, channel_id, display_name, verified, \
-             created_at, updated_at FROM crm_contact_channels \
-             WHERE contact_id = ? ORDER BY updated_at DESC",
-        )
+        let rows = sqlx::query_as::<_, ContactChannelRow>(&format!(
+            "{SELECT_CHANNELS} WHERE contact_id = ? ORDER BY updated_at DESC"
+        ))
         .bind(contact_id)
         .fetch_all(&self.pool)
         .await?;
@@ -264,11 +291,9 @@ impl CrmStore for SqliteCrmStore {
         channel_type: &str,
         channel_id: &str,
     ) -> Result<Option<ContactChannel>> {
-        let row = sqlx::query_as::<_, ContactChannelRow>(
-            "SELECT id, contact_id, channel_type, channel_id, display_name, verified, \
-             created_at, updated_at FROM crm_contact_channels \
-             WHERE channel_type = ? AND channel_id = ?",
-        )
+        let row = sqlx::query_as::<_, ContactChannelRow>(&format!(
+            "{SELECT_CHANNELS} WHERE channel_type = ? AND channel_id = ?"
+        ))
         .bind(channel_type)
         .bind(channel_id)
         .fetch_optional(&self.pool)
@@ -314,22 +339,43 @@ impl CrmStore for SqliteCrmStore {
     // ── Matters ───────────────────────────────────────────────────────────────
 
     async fn list_matters(&self) -> Result<Vec<Matter>> {
-        let rows = sqlx::query_as::<_, MatterRow>(
-            "SELECT id, contact_id, title, description, status, phase, practice_area, \
-             created_at, updated_at FROM crm_matters ORDER BY updated_at DESC",
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let rows =
+            sqlx::query_as::<_, MatterRow>(&format!("{SELECT_MATTERS} ORDER BY updated_at DESC"))
+                .fetch_all(&self.pool)
+                .await?;
 
         rows.into_iter().map(Matter::try_from).collect()
     }
 
+    async fn list_matters_filtered(
+        &self,
+        contact_id: Option<&str>,
+        practice_area: Option<PracticeArea>,
+    ) -> Result<Vec<Matter>> {
+        let mut sql = format!("{SELECT_MATTERS} WHERE 1=1");
+        if contact_id.is_some() {
+            sql.push_str(" AND contact_id = ?");
+        }
+        if practice_area.is_some() {
+            sql.push_str(" AND practice_area = ?");
+        }
+        sql.push_str(" ORDER BY updated_at DESC");
+
+        let mut q = sqlx::query_as::<_, MatterRow>(&sql);
+        if let Some(cid) = contact_id {
+            q = q.bind(cid);
+        }
+        if let Some(pa) = practice_area {
+            q = q.bind(pa.as_str());
+        }
+        let rows = q.fetch_all(&self.pool).await?;
+        rows.into_iter().map(Matter::try_from).collect()
+    }
+
     async fn list_matters_by_contact(&self, contact_id: &str) -> Result<Vec<Matter>> {
-        let rows = sqlx::query_as::<_, MatterRow>(
-            "SELECT id, contact_id, title, description, status, phase, practice_area, \
-             created_at, updated_at FROM crm_matters \
-             WHERE contact_id = ? ORDER BY updated_at DESC",
-        )
+        let rows = sqlx::query_as::<_, MatterRow>(&format!(
+            "{SELECT_MATTERS} WHERE contact_id = ? ORDER BY updated_at DESC"
+        ))
         .bind(contact_id)
         .fetch_all(&self.pool)
         .await?;
@@ -338,13 +384,10 @@ impl CrmStore for SqliteCrmStore {
     }
 
     async fn get_matter(&self, id: &str) -> Result<Option<Matter>> {
-        let row = sqlx::query_as::<_, MatterRow>(
-            "SELECT id, contact_id, title, description, status, phase, practice_area, \
-             created_at, updated_at FROM crm_matters WHERE id = ?",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let row = sqlx::query_as::<_, MatterRow>(&format!("{SELECT_MATTERS} WHERE id = ?"))
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         row.map(Matter::try_from).transpose()
     }
@@ -388,11 +431,9 @@ impl CrmStore for SqliteCrmStore {
     // ── Interactions ──────────────────────────────────────────────────────────
 
     async fn list_interactions_by_contact(&self, contact_id: &str) -> Result<Vec<Interaction>> {
-        let rows = sqlx::query_as::<_, InteractionRow>(
-            "SELECT id, contact_id, matter_id, kind, summary, channel, \
-             created_at, updated_at FROM crm_interactions \
-             WHERE contact_id = ? ORDER BY updated_at DESC",
-        )
+        let rows = sqlx::query_as::<_, InteractionRow>(&format!(
+            "{SELECT_INTERACTIONS} WHERE contact_id = ? ORDER BY updated_at DESC"
+        ))
         .bind(contact_id)
         .fetch_all(&self.pool)
         .await?;
@@ -401,11 +442,9 @@ impl CrmStore for SqliteCrmStore {
     }
 
     async fn list_interactions_by_matter(&self, matter_id: &str) -> Result<Vec<Interaction>> {
-        let rows = sqlx::query_as::<_, InteractionRow>(
-            "SELECT id, contact_id, matter_id, kind, summary, channel, \
-             created_at, updated_at FROM crm_interactions \
-             WHERE matter_id = ? ORDER BY updated_at DESC",
-        )
+        let rows = sqlx::query_as::<_, InteractionRow>(&format!(
+            "{SELECT_INTERACTIONS} WHERE matter_id = ? ORDER BY updated_at DESC"
+        ))
         .bind(matter_id)
         .fetch_all(&self.pool)
         .await?;
@@ -414,13 +453,11 @@ impl CrmStore for SqliteCrmStore {
     }
 
     async fn get_interaction(&self, id: &str) -> Result<Option<Interaction>> {
-        let row = sqlx::query_as::<_, InteractionRow>(
-            "SELECT id, contact_id, matter_id, kind, summary, channel, \
-             created_at, updated_at FROM crm_interactions WHERE id = ?",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let row =
+            sqlx::query_as::<_, InteractionRow>(&format!("{SELECT_INTERACTIONS} WHERE id = ?"))
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
 
         row.map(Interaction::try_from).transpose()
     }
@@ -468,7 +505,8 @@ mod tests {
     use {
         super::*,
         crate::types::{
-            Contact, ContactChannel, Interaction, InteractionKind, Matter, PracticeArea,
+            Contact, ContactChannel, ContactStage, Interaction, InteractionKind, Matter,
+            PracticeArea,
         },
     };
 
@@ -744,5 +782,203 @@ mod tests {
         store.delete_interaction(&iid).await.unwrap();
         store.delete_interaction(&iid).await.unwrap();
         assert!(store.get_interaction(&iid).await.unwrap().is_none());
+    }
+
+    // ── list_filtered tests ───────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_filtered_no_filters_returns_all() {
+        let store = test_store().await;
+        store.upsert(Contact::new("A")).await.unwrap();
+        store.upsert(Contact::new("B")).await.unwrap();
+        let all = store.list_filtered(None, None, 0, 50).await.unwrap();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn list_filtered_by_stage() {
+        let store = test_store().await;
+        let mut active = Contact::new("ActiveOne");
+        active.stage = ContactStage::Active;
+        let lead = Contact::new("LeadOne"); // default stage = Lead
+        store.upsert(active).await.unwrap();
+        store.upsert(lead).await.unwrap();
+        let results = store
+            .list_filtered(Some(ContactStage::Active), None, 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "ActiveOne");
+    }
+
+    #[tokio::test]
+    async fn list_filtered_by_name_search() {
+        let store = test_store().await;
+        store.upsert(Contact::new("Alice Smith")).await.unwrap();
+        store.upsert(Contact::new("Bob Jones")).await.unwrap();
+        let results = store
+            .list_filtered(None, Some("alice"), 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Alice Smith");
+    }
+
+    #[tokio::test]
+    async fn list_filtered_by_email_search() {
+        use secrecy::Secret;
+        let store = test_store().await;
+        let mut c = Contact::new("EmailUser");
+        c.email = Some(Secret::new("hello@example.com".to_owned()));
+        store.upsert(c).await.unwrap();
+        store.upsert(Contact::new("NoEmail")).await.unwrap();
+        let results = store
+            .list_filtered(None, Some("example.com"), 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "EmailUser");
+    }
+
+    #[tokio::test]
+    async fn list_filtered_pagination() {
+        let store = test_store().await;
+        for i in 0..5 {
+            store
+                .upsert(Contact::new(format!("Contact{i}")))
+                .await
+                .unwrap();
+        }
+        let page1 = store.list_filtered(None, None, 0, 2).await.unwrap();
+        let page2 = store.list_filtered(None, None, 2, 2).await.unwrap();
+        assert_eq!(page1.len(), 2);
+        assert_eq!(page2.len(), 2);
+        // Pages should not overlap.
+        let ids1: std::collections::HashSet<_> = page1.iter().map(|c| &c.id).collect();
+        let ids2: std::collections::HashSet<_> = page2.iter().map(|c| &c.id).collect();
+        assert!(ids1.is_disjoint(&ids2));
+    }
+
+    #[tokio::test]
+    async fn list_filtered_combined_stage_and_search() {
+        use secrecy::Secret;
+        let store = test_store().await;
+        let mut c1 = Contact::new("Alice Active");
+        c1.stage = ContactStage::Active;
+        c1.email = Some(Secret::new("alice@active.com".to_owned()));
+        let mut c2 = Contact::new("Alice Lead");
+        c2.email = Some(Secret::new("alice@lead.com".to_owned()));
+        store.upsert(c1).await.unwrap();
+        store.upsert(c2).await.unwrap();
+        let results = store
+            .list_filtered(Some(ContactStage::Active), Some("alice"), 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Alice Active");
+    }
+
+    // ── get_with_channels tests ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_with_channels_returns_contact_and_channels() {
+        let store = test_store().await;
+        let c = Contact::new("ChanUser");
+        let cid = c.id.clone();
+        store.upsert(c).await.unwrap();
+        store
+            .upsert_channel(ContactChannel::new(&cid, "telegram", "tg-42"))
+            .await
+            .unwrap();
+        let result = store.get_with_channels(&cid).await.unwrap().unwrap();
+        assert_eq!(result.contact.name, "ChanUser");
+        assert_eq!(result.channels.len(), 1);
+        assert_eq!(result.channels[0].channel_type, "telegram");
+    }
+
+    #[tokio::test]
+    async fn get_with_channels_returns_none_for_missing_contact() {
+        let store = test_store().await;
+        assert!(
+            store
+                .get_with_channels("no-such-id")
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    // ── list_matters_filtered tests ───────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_contact_id() {
+        let store = test_store().await;
+        let c1 = Contact::new("C1");
+        let c2 = Contact::new("C2");
+        store.upsert(c1.clone()).await.unwrap();
+        store.upsert(c2.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&c1.id, "M1", PracticeArea::Corporate))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c2.id, "M2", PracticeArea::Tax))
+            .await
+            .unwrap();
+        let results = store
+            .list_matters_filtered(Some(&c1.id), None)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "M1");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_practice_area() {
+        let store = test_store().await;
+        let c = Contact::new("PracticeC");
+        store.upsert(c.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "Corporate", PracticeArea::Corporate))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "Tax", PracticeArea::Tax))
+            .await
+            .unwrap();
+        let results = store
+            .list_matters_filtered(None, Some(PracticeArea::Tax))
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Tax");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_combined() {
+        let store = test_store().await;
+        let c1 = Contact::new("F1");
+        let c2 = Contact::new("F2");
+        store.upsert(c1.clone()).await.unwrap();
+        store.upsert(c2.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&c1.id, "C1-Corp", PracticeArea::Corporate))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c1.id, "C1-Tax", PracticeArea::Tax))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c2.id, "C2-Corp", PracticeArea::Corporate))
+            .await
+            .unwrap();
+        // Both contact_id and practice_area filter.
+        let results = store
+            .list_matters_filtered(Some(&c1.id), Some(PracticeArea::Corporate))
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "C1-Corp");
     }
 }

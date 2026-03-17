@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::{
     Result,
     store::CrmStore,
-    types::{Contact, ContactChannel, Interaction, Matter},
+    types::{Contact, ContactChannel, ContactStage, Interaction, Matter, PracticeArea},
 };
 
 /// In-memory implementation of [`CrmStore`] for testing.
@@ -33,6 +33,39 @@ impl CrmStore for MemoryCrmStore {
         let mut out: Vec<Contact> = contacts.values().cloned().collect();
         out.sort_by_key(|c| std::cmp::Reverse(c.updated_at));
         Ok(out)
+    }
+
+    async fn list_filtered(
+        &self,
+        stage: Option<ContactStage>,
+        search: Option<&str>,
+        offset: u64,
+        limit: u64,
+    ) -> Result<Vec<Contact>> {
+        use secrecy::ExposeSecret;
+
+        let contacts = self.contacts.read().unwrap_or_else(|e| e.into_inner());
+        let search_lower = search.map(str::to_lowercase);
+        let mut out: Vec<Contact> = contacts
+            .values()
+            .filter(|c| stage.is_none_or(|s| c.stage == s))
+            .filter(|c| {
+                search_lower.as_deref().is_none_or(|term| {
+                    c.name.to_lowercase().contains(term)
+                        || c.email
+                            .as_ref()
+                            .is_some_and(|e| e.expose_secret().to_lowercase().contains(term))
+                        || c.phone
+                            .as_ref()
+                            .is_some_and(|p| p.expose_secret().to_lowercase().contains(term))
+                })
+            })
+            .cloned()
+            .collect();
+        out.sort_by_key(|c| std::cmp::Reverse(c.updated_at));
+        let offset = offset as usize;
+        let limit = limit as usize;
+        Ok(out.into_iter().skip(offset).take(limit).collect())
     }
 
     async fn get(&self, id: &str) -> Result<Option<Contact>> {
@@ -104,6 +137,22 @@ impl CrmStore for MemoryCrmStore {
     async fn list_matters(&self) -> Result<Vec<Matter>> {
         let matters = self.matters.read().unwrap_or_else(|e| e.into_inner());
         let mut out: Vec<Matter> = matters.values().cloned().collect();
+        out.sort_by_key(|m| std::cmp::Reverse(m.updated_at));
+        Ok(out)
+    }
+
+    async fn list_matters_filtered(
+        &self,
+        contact_id: Option<&str>,
+        practice_area: Option<PracticeArea>,
+    ) -> Result<Vec<Matter>> {
+        let matters = self.matters.read().unwrap_or_else(|e| e.into_inner());
+        let mut out: Vec<Matter> = matters
+            .values()
+            .filter(|m| contact_id.is_none_or(|cid| m.contact_id.as_deref() == Some(cid)))
+            .filter(|m| practice_area.is_none_or(|pa| m.practice_area == pa))
+            .cloned()
+            .collect();
         out.sort_by_key(|m| std::cmp::Reverse(m.updated_at));
         Ok(out)
     }
@@ -186,7 +235,8 @@ mod tests {
     use {
         super::*,
         crate::types::{
-            Contact, ContactChannel, Interaction, InteractionKind, Matter, PracticeArea,
+            Contact, ContactChannel, ContactStage, Interaction, InteractionKind, Matter,
+            PracticeArea,
         },
     };
 
@@ -432,5 +482,92 @@ mod tests {
         store.delete_interaction(&iid).await.unwrap();
         store.delete_interaction(&iid).await.unwrap();
         assert!(store.get_interaction(&iid).await.unwrap().is_none());
+    }
+
+    // ── list_filtered tests ───────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_filtered_by_stage() {
+        let store = MemoryCrmStore::new();
+        let mut active = Contact::new("Active");
+        active.stage = ContactStage::Active;
+        store.upsert(active).await.unwrap();
+        store.upsert(Contact::new("Lead")).await.unwrap();
+        let results = store
+            .list_filtered(Some(ContactStage::Active), None, 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Active");
+    }
+
+    #[tokio::test]
+    async fn list_filtered_by_search() {
+        let store = MemoryCrmStore::new();
+        store.upsert(Contact::new("Alice Smith")).await.unwrap();
+        store.upsert(Contact::new("Bob Jones")).await.unwrap();
+        let results = store
+            .list_filtered(None, Some("alice"), 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "Alice Smith");
+    }
+
+    #[tokio::test]
+    async fn list_filtered_pagination() {
+        let store = MemoryCrmStore::new();
+        for i in 0..5 {
+            store.upsert(Contact::new(format!("C{i}"))).await.unwrap();
+        }
+        let page = store.list_filtered(None, None, 0, 3).await.unwrap();
+        assert_eq!(page.len(), 3);
+        let rest = store.list_filtered(None, None, 3, 3).await.unwrap();
+        assert_eq!(rest.len(), 2);
+    }
+
+    // ── get_with_channels tests ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_with_channels_returns_contact_and_channels() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("ChanUser");
+        let cid = c.id.clone();
+        store.upsert(c).await.unwrap();
+        store
+            .upsert_channel(ContactChannel::new(&cid, "slack", "U-1"))
+            .await
+            .unwrap();
+        let result = store.get_with_channels(&cid).await.unwrap().unwrap();
+        assert_eq!(result.channels.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn get_with_channels_missing_returns_none() {
+        let store = MemoryCrmStore::new();
+        assert!(store.get_with_channels("nope").await.unwrap().is_none());
+    }
+
+    // ── list_matters_filtered tests ───────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_contact_and_practice_area() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("FC");
+        store.upsert(c.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "Corp", PracticeArea::Corporate))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "Tax", PracticeArea::Tax))
+            .await
+            .unwrap();
+        let by_pa = store
+            .list_matters_filtered(None, Some(PracticeArea::Corporate))
+            .await
+            .unwrap();
+        assert_eq!(by_pa.len(), 1);
+        assert_eq!(by_pa[0].title, "Corp");
     }
 }
