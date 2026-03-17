@@ -848,6 +848,7 @@ fn build_mock_services(mock: &Arc<MockDispatch>) -> Arc<Services> {
         project: Arc::new(MockProject(mock.clone())),
         local_llm: Arc::new(MockLocalLlm(mock.clone())),
         system_info: Arc::new(MockSystemInfo(mock.clone())),
+        crm: Arc::new(moltis_service_traits::NoopCrmService),
     })
 }
 
