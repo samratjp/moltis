@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "0c0d643de2df",
+  "strategy": "manual-commit",
+  "branch": "whatsapp-fail",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "Cargo.lock",
+    "Cargo.toml",
+    "crates/cli/src/node_commands.rs",
+    "crates/gateway/src/auth_middleware.rs",
+    "crates/gateway/src/channel.rs",
+    "crates/gateway/tests/auth_middleware.rs",
+    "crates/node-host/src/service.rs",
+    "crates/whatsapp/Cargo.toml",
+    "crates/whatsapp/src/connection.rs",
+    "crates/whatsapp/src/handlers.rs",
+    "crates/whatsapp/src/plugin.rs",
+    "crates/whatsapp/src/sled_store.rs",
+    "crates/whatsapp/src/state.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0c/0d643de2df/0/metadata.json",
+      "transcript": "/0c/0d643de2df/0/full.jsonl",
+      "context": "/0c/0d643de2df/0/context.md",
+      "content_hash": "/0c/0d643de2df/0/content_hash.txt",
+      "prompt": "/0c/0d643de2df/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 123,
+    "cache_creation_tokens": 313051,
+    "cache_read_tokens": 7760739,
+    "output_tokens": 4401,
+    "api_call_count": 108
+  }
+}
