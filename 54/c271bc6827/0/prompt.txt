@@ -1,0 +1,1070 @@
+Look at https://github.com/moltis-org/moltis/issues/376 and suggest a fix
+
+---
+
+please implement it
+
+---
+
+commit, push, create a PR
+
+---
+
+try again
+
+---
+
+try again
+
+---
+
+try again
+
+---
+
+configuration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✖ Biome exited because the configuration resulted in errors. Please fix them.
+
+
+i18n parity OK: 3 locales, 18 namespaces.
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/cli/src/node_commands.rs:157:
+             let node_config = moltis_node_host::NodeConfig {
+                 gateway_url: config.gateway_url,
+                 device_token: config.device_token,
+-                node_id: config.node_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
++                node_id: config
++                    .node_id
++                    .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                 display_name: config.display_name,
+                 platform: std::env::consts::OS.into(),
+                 caps: vec![
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/config/src/lib.rs:26:
+         load_tools_md_for_agent, load_user, memory_path, resolve_identity,
+         resolve_identity_from_config, save_config, save_identity, save_identity_for_agent,
+         save_raw_config, save_soul, save_soul_for_agent, save_user, set_config_dir, set_data_dir,
+-        set_share_dir,
+-        share_dir, soul_path, tools_path, update_config, user_global_config_dir,
++        set_share_dir, share_dir, soul_path, tools_path, update_config, user_global_config_dir,
+         user_global_config_dir_if_different, user_path,
+     },
+     schema::{
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/src/auth_middleware.rs:189:
+ fn is_public_path(path: &str) -> bool {
+     matches!(
+         path,
+-        "/health" | "/auth/callback" | "/manifest.json" | "/sw.js" | "/login" | "/setup-required" | "/ws"
++        "/health"
++            | "/auth/callback"
++            | "/manifest.json"
++            | "/sw.js"
++            | "/login"
++            | "/setup-required"
++            | "/ws"
+     ) || path.starts_with("/api/auth/")
+         || path.starts_with("/api/public/")
+         || path.starts_with("/api/channels/msteams/")
+error: expected `;`, found `assert_ne`
+   --> /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/tests/auth_middleware.rs:326:42
+    |
+326 |         .get(format!("http://{addr}/ws"))
+    |                                          ^ help: add `;` here
+327 |     assert_ne!(
+    |     --------- unexpected token
+
+[local/i18n] passed in 1s
+[local/biome] failed in 1s
+error: Recipe `format-check` failed on line 14 with exit code 1
+[local/fmt] failed in 2s
+[local/fmt] total 3s
+[local/biome] total 2s
+[local/i18n] total 2s
+One or more parallel local checks failed.
+~/.s/w/m/soul-location soul-location ❯  INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/release.yml
+No findings to report. Good job! (8 ignored, 47 suppressed)
+[local/zizmor] passed in 7s
+~/.s/w/m/soul-location soul-location ❯
+
+---
+
+~/.s/w/m/soul-location soul-location ❯ ./scripts/local-validate.sh 384
+Detected macOS without nvcc; forcing non-CUDA local validation commands (no --all-features).
+Override with LOCAL_VALIDATE_LINT_CMD / LOCAL_VALIDATE_TEST_CMD / LOCAL_VALIDATE_BUILD_CMD / LOCAL_VALIDATE_COVERAGE_CMD if needed.
+Validating PR #384 (623dd1395e995418516a14e2d7b728013469e313) in moltis-org/moltis
+Publishing commit statuses to: moltis-org/moltis
+Current CI workflow: https://github.com/moltis-org/moltis/actions/runs/22902147783
+i18n parity OK: 3 locales, 18 namespaces.
+🌈 zizmor v1.22.0
+cargo +nightly-2025-11-30 fmt --all -- --check
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/cli/src/node_commands.rs:157:
+             let node_config = moltis_node_host::NodeConfig {
+                 gateway_url: config.gateway_url,
+                 device_token: config.device_token,
+-                node_id: config.node_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
++                node_id: config
++                    .node_id
++                    .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                 display_name: config.display_name,
+                 platform: std::env::consts::OS.into(),
+                 caps: vec![
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/src/auth_middleware.rs:189:
+ fn is_public_path(path: &str) -> bool {
+     matches!(
+         path,
+-        "/health" | "/auth/callback" | "/manifest.json" | "/sw.js" | "/login" | "/setup-required" | "/ws"
++        "/health"
++            | "/auth/callback"
++            | "/manifest.json"
++            | "/sw.js"
++            | "/login"
++            | "/setup-required"
++            | "/ws"
+     ) || path.starts_with("/api/auth/")
+         || path.starts_with("/api/public/")
+         || path.starts_with("/api/channels/msteams/")
+error: expected `;`, found `assert_ne`
+   --> /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/tests/auth_middleware.rs:326:42
+    |
+326 |         .get(format!("http://{addr}/ws"))
+    |                                          ^ help: add `;` here
+327 |     assert_ne!(
+    |     --------- unexpected token
+
+[local/i18n] passed in 0s
+error: Recipe `format-check` failed on line 14 with exit code 1
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+[local/fmt] failed in 2s
+[local/fmt] total 2s
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+
+---
+
+error: unused variable: `config`
+   --> crates/node-host/src/service.rs:203:5
+    |
+203 |     config: &ServiceConfig,
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+    |
+    = note: `-D unused-variables` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_variables)]`
+
+error: unused variable: `config`
+   --> crates/node-host/src/service.rs:394:49
+    |
+394 | pub fn generate_systemd_unit(moltis_bin: &Path, config: &ServiceConfig, log_path: &Path) -> String {
+    |                                                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+error: useless use of `vec!`
+   --> crates/node-host/src/service.rs:209:16
+    |
+209 |       let args = vec![
+    |  ________________^
+210 | |         format!("    <string>{bin}</string>"),
+211 | |         "    <string>node</string>".to_string(),
+212 | |         "    <string>run</string>".to_string(),
+213 | |     ];
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_vec
+    = note: `-D clippy::useless-vec` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_vec)]`
+help: you can use an array directly
+    |
+209 ~     let args = [format!("    <string>{bin}</string>"),
+210 +         "    <string>node</string>".to_string(),
+211 ~         "    <string>run</string>".to_string()];
+    |
+
+error: could not compile `moltis-node-host` (lib) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+      Timing report saved to /Users/penso/.superset/worktrees/moltis/soul-location/target/cargo-timings/cargo-timing-20260310T122301.120086Z.html
+[local/lint] failed in 63s
+~/.s/w/m/soul-location soul-location ❯
+
+---
+
+🌈 zizmor v1.22.0
+i18n parity OK: 3 locales, 18 namespaces.
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/node-host/src/service.rs:391:
+ }
+
+ /// Generate a systemd user unit file.
+-pub fn generate_systemd_unit(moltis_bin: &Path, _config: &ServiceConfig, log_path: &Path) -> String {
++pub fn generate_systemd_unit(
++    moltis_bin: &Path,
++    _config: &ServiceConfig,
++    log_path: &Path,
++) -> String {
+     let bin = moltis_bin.display();
+     let log = log_path.display();
+
+[local/biome] passed in 0s
+[local/i18n] passed in 0s
+error: Recipe `format-check` failed on line 14 with exit code 1
+[local/fmt] failed in 1s
+[local/fmt] total 2s
+[local/biome] total 1s
+[local/i18n] total 1s
+One or more parallel local checks failed.
+~/.s/w/m/soul-location soul-location ❯  INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/release.yml
+No findings to report. Good job! (8 ignored, 47 suppressed)
+[local/zizmor] passed in 5s
+
+---
+
+PASS [   0.008s] moltis-msteams channel_webhook_verifier::tests::contract_has_valid_rate_policy
+        PASS [   0.008s] moltis-msteams channel_webhook_verifier::tests::contract_rejects_bad_signature
+        PASS [   0.007s] moltis-msteams channel_webhook_verifier::tests::contract_rejects_empty_signature
+        PASS [   0.007s] moltis-msteams channel_webhook_verifier::tests::no_secret_configured_and_not_required_passes
+        PASS [   0.007s] moltis-msteams channel_webhook_verifier::tests::no_id_field_yields_none_idempotency_key
+        PASS [   0.008s] moltis-msteams channel_webhook_verifier::tests::empty_secret_configured_and_not_required_passes
+        PASS [   0.008s] moltis-msteams channel_webhook_verifier::tests::missing_secret_header_rejects
+        PASS [   0.007s] moltis-msteams channel_webhook_verifier::tests::valid_secret_passes
+        PASS [   0.009s] moltis-msteams channel_webhook_verifier::tests::require_secret_but_not_configured_rejects
+        PASS [   0.008s] moltis-msteams channel_webhook_verifier::tests::wrong_secret_rejects
+        PASS [   0.007s] moltis-msteams plugin::tests::descriptor_coherence
+        PASS [   0.008s] moltis-network-filter buffer::tests::broadcast_receiver_gets_entries
+        PASS [   0.008s] moltis-network-filter buffer::tests::buffer_ring_evicts_oldest
+        PASS [   0.007s] moltis-network-filter buffer::tests::filter_by_protocol
+        PASS [   0.008s] moltis-network-filter buffer::tests::filter_by_action
+        PASS [   0.008s] moltis-network-filter buffer::tests::filter_by_domain
+        PASS [   0.008s] moltis-network-filter buffer::tests::filter_by_search
+        PASS [   0.008s] moltis-network-filter buffer::tests::list_respects_limit
+        PASS [   0.009s] moltis-network-filter buffer::tests::persistence_write_and_read
+        PASS [   0.008s] moltis-network-filter buffer::tests::stats_calculation
+        PASS [   0.008s] moltis-network-filter domain_approval::tests::test_check_domain_config_allowlist
+        PASS [   0.008s] moltis-network-filter domain_approval::tests::test_create_and_resolve_approved
+        PASS [   0.008s] moltis-network-filter domain_approval::tests::test_empty_allowlist_allows_all_domains
+        PASS [   0.008s] moltis-network-filter domain_approval::tests::test_create_and_resolve_denied
+        PASS [   0.008s] moltis-network-filter domain_approval::tests::test_check_domain_session_allowlist
+        PASS [   0.008s] moltis-network-filter domain_approval::tests::test_list_trusted_domains
+        PASS [   0.007s] moltis-network-filter domain_approval::tests::test_pending_requests
+        PASS [   0.008s] moltis-network-filter domain_approval::tests::test_remove_trusted_domain
+        PASS [   0.006s] moltis-network-filter error::tests::io_error_converts
+        PASS [   0.007s] moltis-network-filter error::tests::message_error
+        PASS [   0.007s] moltis-network-filter proxy::tests::test_extract_port_from_url
+        PASS [   0.007s] moltis-network-filter error::tests::json_error_converts
+        PASS [   0.263s] moltis-memory embeddings_batch::tests::test_below_threshold_uses_inner
+        PASS [   0.262s] moltis-memory embeddings_batch::tests::test_single_embed_uses_inner
+        PASS [   0.008s] moltis-network-filter proxy::tests::test_extract_host_from_url
+        PASS [   0.007s] moltis-network-filter proxy::tests::test_parse_host_port
+        PASS [   0.009s] moltis-network-filter proxy::tests::test_is_private_or_loopback
+        PASS [   0.008s] moltis-network-filter proxy::tests::test_url_to_path
+        PASS [   0.008s] moltis-network-filter types::tests::domain_pattern_case_insensitive
+        PASS [   0.007s] moltis-network-filter types::tests::network_policy_default_is_trusted
+        PASS [   0.008s] moltis-network-filter types::tests::domain_pattern_exact
+        PASS [   0.007s] moltis-network-filter types::tests::enum_serde_rename
+        PASS [   0.008s] moltis-network-filter types::tests::domain_pattern_wildcard_subdomain
+        PASS [   0.007s] moltis-network-filter types::tests::network_policy_serde
+        PASS [   0.008s] moltis-network-filter types::tests::domain_pattern_wildcard
+        PASS [   0.008s] moltis-network-filter types::tests::filter_outcome_display
+        PASS [   0.007s] moltis-network-filter types::tests::protocol_display
+        PASS [   0.008s] moltis-network-filter types::tests::serde_denied_entry
+        PASS [   0.007s] moltis-network-filter types::tests::serde_round_trip
+        PASS [   0.007s] moltis-network-filter types::tests::serde_http_forward_entry
+        PASS [   0.007s] moltis-node-host runner::tests::default_config_platform_is_current_os
+        PASS [   0.008s] moltis-node-host runner::tests::default_config_has_system_run_cap
+        PASS [   0.010s] moltis-node-host runner::tests::system_which_missing_binary
+        PASS [   0.010s] moltis-node-host runner::tests::system_which_finds_sh
+        PASS [   0.011s] moltis-node-host runner::tests::system_run_exit_code
+        PASS [   0.012s] moltis-node-host runner::tests::system_run_echo
+  TRY 1 FAIL [   0.008s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 1 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 1 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (533407) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 2/3 [         ] moltis-node-host service::tests::launchd_plist_contains_required_elements
+        PASS [   0.007s] moltis-node-host service::tests::service_config_default_timeout
+        PASS [   0.007s] moltis-node-host service::tests::launchd_plist_omits_optional_fields
+        PASS [   0.007s] moltis-node-host service::tests::service_config_roundtrip
+        PASS [   0.014s] moltis-node-host runner::tests::system_run_captures_stderr
+        PASS [   0.008s] moltis-node-host service::tests::service_config_save_and_load
+        PASS [   0.007s] moltis-node-host service::tests::status_display
+        PASS [   0.007s] moltis-node-host service::tests::systemd_unit_contains_required_elements
+        PASS [   0.008s] moltis-node-host service::tests::systemd_unit_omits_optional_fields
+        PASS [   0.008s] moltis-oauth callback_input::tests::parses_compact_code_state
+  TRY 2 FAIL [   0.008s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 2 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 2 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (533440) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 3/3 [         ] moltis-node-host service::tests::launchd_plist_contains_required_elements
+        PASS [   0.010s] moltis-oauth callback_input::tests::parses_full_callback_url
+        PASS [   0.009s] moltis-oauth callback_input::tests::parses_query_string
+        PASS [   0.009s] moltis-oauth callback_input::tests::rejects_missing_state
+        PASS [   0.009s] moltis-oauth defaults::tests::callback_port_empty_redirect_uri
+        PASS [   0.008s] moltis-oauth defaults::tests::callback_port_with_redirect_uri
+        PASS [   0.007s] moltis-oauth defaults::tests::load_github_copilot_config
+        PASS [   0.202s] moltis-memory manager::tests::test_scale_many_files
+        PASS [   0.007s] moltis-oauth defaults::tests::load_kimi_code_config
+        PASS [   0.007s] moltis-oauth defaults::tests::load_openai_codex_config
+        PASS [   0.009s] moltis-oauth defaults::tests::load_unknown_provider_returns_none
+  TRY 3 FAIL [   0.008s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 3 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (533476) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 15 tests still running
+        PASS [   0.007s] moltis-oauth device_flow::tests::device_code_response_serialize_roundtrip
+        PASS [   0.009s] moltis-oauth device_flow::tests::device_code_response_deserialize
+        PASS [   0.009s] moltis-oauth device_flow::tests::device_code_response_with_interval
+        PASS [   0.010s] moltis-oauth device_flow::tests::device_code_response_with_verification_uri_complete
+        PASS [   0.059s] moltis-network-filter domain_approval::tests::test_wait_for_decision_timeout
+        PASS [   2.539s] moltis-gateway::auth_middleware password_change_initializes_vault
+        PASS [   0.270s] moltis-memory session_export::tests::test_cleanup_removes_excess_exports
+        PASS [   0.209s] moltis-metrics recorder::tests::test_init_disabled
+        PASS [   0.331s] moltis-oauth device_flow::tests::poll_for_token_immediate_success
+        PASS [   0.331s] moltis-oauth device_flow::tests::poll_for_token_unexpected_response
+        PASS [   0.333s] moltis-oauth device_flow::tests::poll_for_token_pending_then_success
+        PASS [   0.331s] moltis-oauth device_flow::tests::request_device_code_server_error
+        PASS [   0.334s] moltis-oauth device_flow::tests::poll_for_token_with_refresh_and_expiry
+        PASS [   0.336s] moltis-oauth device_flow::tests::poll_for_token_access_denied_error
+        PASS [   3.565s] moltis-gateway::auth_middleware password_change_on_initialized_vault_no_recovery_key
+────────────
+     Summary [  21.025s] 1696/3625 tests run: 1695 passed, 1 failed, 0 skipped
+  TRY 3 FAIL [   0.008s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 3 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (533476) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: 1929/3625 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed
+[local/test] failed in 136s
+~/.s/w/m/soul-location soul-location ❯
+
+---
+
+PASS [   0.012s] moltis-oauth registration_store::tests::delete_registration
+        PASS [   0.010s] moltis-oauth registration_store::tests::load_nonexistent_returns_none
+        PASS [   0.900s] moltis-oauth discovery::tests::fetch_as_metadata_success
+        PASS [   0.011s] moltis-oauth registration_store::tests::no_client_secret_roundtrip
+        PASS [   0.010s] moltis-oauth registration_store::tests::roundtrip_save_load
+        PASS [   0.012s] moltis-oauth::oauth_tests load_oauth_config_returns_none_for_unknown
+        PASS [   0.010s] moltis-oauth::oauth_tests pkce_generates_valid_challenge
+        PASS [   0.009s] moltis-oauth::oauth_tests pkce_is_deterministic_sha256
+        PASS [   0.013s] moltis-oauth::oauth_tests load_oauth_config_returns_openai_codex_defaults
+        PASS [   0.913s] moltis-oauth discovery::tests::fetch_as_metadata_malformed_json
+        PASS [   0.931s] moltis-oauth device_flow::tests::poll_for_token_access_denied_error
+        PASS [   0.016s] moltis-oauth::oauth_tests callback_port_parses_from_redirect_uri
+        PASS [   0.912s] moltis-oauth discovery::tests::fetch_resource_metadata_network_failure
+        PASS [   0.011s] moltis-onboarding service::tests::cancel_wizard
+        PASS [   0.012s] moltis-oauth::oauth_tests token_store_roundtrip
+        PASS [   0.010s] moltis-onboarding service::tests::sentinel_file_marks_onboarded
+        PASS [   0.020s] moltis-onboarding service::tests::config_data_alone_does_not_skip_onboarding
+        PASS [   0.009s] moltis-onboarding state::tests::back_from_confirm
+        PASS [   0.024s] moltis-onboarding service::tests::identity_update_empty_fields
+        PASS [   0.024s] moltis-onboarding service::tests::identity_update_location_null_clears_existing_value
+        PASS [   0.024s] moltis-onboarding service::tests::identity_update_location_fields
+  TRY 1 FAIL [   0.014s] moltis-onboarding service::tests::wizard_round_trip
+──── TRY 1 STDOUT:       moltis-onboarding service::tests::wizard_round_trip
+
+running 1 test
+test service::tests::wizard_round_trip ... FAILED
+
+failures:
+
+failures:
+    service::tests::wizard_round_trip
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+──── TRY 1 STDERR:       moltis-onboarding service::tests::wizard_round_trip
+
+thread 'service::tests::wizard_round_trip' (590345) panicked at crates/onboarding/src/service.rs:429:9:
+assertion failed: dir.path().join("IDENTITY.md").exists()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 2/3 [         ] moltis-onboarding service::tests::wizard_round_trip
+        PASS [   0.857s] moltis-oauth discovery::tests::fetch_resource_metadata_not_found
+        PASS [   0.008s] moltis-onboarding state::tests::full_wizard_flow
+        PASS [   0.009s] moltis-onboarding state::tests::default_agent_name
+        PASS [   0.010s] moltis-openclaw-import agents::tests::import_agents_no_config_no_agents
+        PASS [   0.010s] moltis-openclaw-import agents::tests::import_agents_single_default
+        PASS [   0.014s] moltis-openclaw-import agents::tests::import_agents_multiple
+        PASS [   0.011s] moltis-openclaw-import agents::tests::import_agents_synthesizes_from_detection
+        PASS [   0.009s] moltis-openclaw-import agents::tests::sanitize_basic
+  TRY 2 FAIL [   0.011s] moltis-onboarding service::tests::wizard_round_trip
+──── TRY 2 STDOUT:       moltis-onboarding service::tests::wizard_round_trip
+
+running 1 test
+test service::tests::wizard_round_trip ... FAILED
+
+failures:
+
+failures:
+    service::tests::wizard_round_trip
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+──── TRY 2 STDERR:       moltis-onboarding service::tests::wizard_round_trip
+
+thread 'service::tests::wizard_round_trip' (590372) panicked at crates/onboarding/src/service.rs:429:9:
+assertion failed: dir.path().join("IDENTITY.md").exists()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.011s] moltis-openclaw-import agents::tests::import_agents_with_identity
+   RETRY 3/3 [         ] moltis-onboarding service::tests::wizard_round_trip
+        PASS [   0.037s] moltis-onboarding service::tests::identity_update_partial
+        PASS [   0.849s] moltis-oauth discovery::tests::fetch_resource_metadata_success
+        PASS [   0.012s] moltis-openclaw-import agents::tests::sanitize_collapses_dashes
+        PASS [   0.007s] moltis-openclaw-import agents::tests::sanitize_main_gets_suffix
+        PASS [   0.007s] moltis-openclaw-import agents::tests::sanitize_empty_string
+        PASS [   0.008s] moltis-openclaw-import agents::tests::sanitize_collision_detection
+        PASS [   0.008s] moltis-openclaw-import agents::tests::sanitize_multiple_collisions
+        PASS [   0.008s] moltis-openclaw-import agents::tests::sanitize_special_chars
+        PASS [   0.009s] moltis-openclaw-import agents::tests::sanitize_trims_dashes
+        PASS [   0.009s] moltis-openclaw-import agents::tests::sanitize_truncates_long_ids
+        PASS [   0.009s] moltis-openclaw-import channels::tests::import_discord_flat_config
+  TRY 3 FAIL [   0.011s] moltis-onboarding service::tests::wizard_round_trip
+──── TRY 3 STDOUT:       moltis-onboarding service::tests::wizard_round_trip
+
+running 1 test
+test service::tests::wizard_round_trip ... FAILED
+
+failures:
+
+failures:
+    service::tests::wizard_round_trip
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-onboarding service::tests::wizard_round_trip
+
+thread 'service::tests::wizard_round_trip' (590412) panicked at crates/onboarding/src/service.rs:429:9:
+assertion failed: dir.path().join("IDENTITY.md").exists()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 15 tests still running
+        PASS [   0.012s] moltis-openclaw-import channels::tests::import_discord_accounts
+        PASS [   0.010s] moltis-openclaw-import channels::tests::import_skips_disabled_accounts
+        PASS [   0.011s] moltis-openclaw-import channels::tests::import_skips_disabled_discord_accounts
+        PASS [   0.011s] moltis-openclaw-import channels::tests::import_telegram_accounts
+        PASS [   0.010s] moltis-openclaw-import channels::tests::no_telegram_returns_skipped
+        PASS [   0.011s] moltis-openclaw-import channels::tests::import_telegram_flat_config
+        PASS [   0.008s] moltis-openclaw-import channels::tests::parse_allow_from_mixed
+        PASS [   0.009s] moltis-openclaw-import channels::tests::unsupported_channels_in_warnings
+        PASS [   0.008s] moltis-openclaw-import detect::tests::detect_at_empty_dir
+        PASS [   0.785s] moltis-oauth discovery::tests::register_client_error_response
+        PASS [   0.785s] moltis-oauth discovery::tests::register_client_no_secret
+        PASS [   0.290s] moltis-oauth discovery::tests::register_client_success
+        PASS [   0.236s] moltis-oauth::oauth_tests oauth_flow_start_generates_unique_state
+        PASS [   0.238s] moltis-oauth::oauth_tests oauth_flow_start_builds_valid_url
+        PASS [   0.257s] moltis-oauth::oauth_tests oauth_flow_exchange_sends_resource_indicator_when_configured
+────────────
+     Summary [  25.770s] 1770/3625 tests run: 1769 passed, 1 failed, 0 skipped
+  TRY 3 FAIL [   0.011s] moltis-onboarding service::tests::wizard_round_trip
+──── TRY 3 STDOUT:       moltis-onboarding service::tests::wizard_round_trip
+
+running 1 test
+test service::tests::wizard_round_trip ... FAILED
+
+failures:
+
+failures:
+    service::tests::wizard_round_trip
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-onboarding service::tests::wizard_round_trip
+
+thread 'service::tests::wizard_round_trip' (590412) panicked at crates/onboarding/src/service.rs:429:9:
+assertion failed: dir.path().join("IDENTITY.md").exists()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: 1855/3625 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed
+[local/test] failed in 59s
+~/.s/w/m/soul-location soul-location ❯
+
+---
+
+PASS [   0.005s] moltis-protocol tests::v4_connect_params_empty_extensions
+        PASS [   0.005s] moltis-protocol tests::v4_connect_params_parses_and_converts
+        PASS [   0.010s] moltis-provider-setup tests::api_key_providers_have_env_key
+        PASS [   0.345s] moltis-projects worktree::tests::test_copy_project_config_skips_if_exists
+        PASS [   0.362s] moltis-projects worktree::tests::test_create_and_list_worktree
+        PASS [   0.364s] moltis-projects worktree::tests::test_create_idempotent
+        PASS [   0.371s] moltis-projects worktree::tests::test_copy_project_config
+        PASS [   0.365s] moltis-projects worktree::tests::test_run_setup_with_env_vars
+        PASS [   0.359s] moltis-projects worktree::tests::test_run_teardown
+        PASS [   0.010s] moltis-provider-setup tests::base_url_to_display_name_strips_api_prefix
+        PASS [   0.010s] moltis-provider-setup tests::codex_cli_auth_has_access_token_requires_tokens_access_token
+  TRY 1 FAIL [   0.401s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 1 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.40s
+
+──── TRY 1 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (644638) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 1 FAIL [   0.397s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 1 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.39s
+
+──── TRY 1 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (644654) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 2/3 [         ] moltis-projects worktree::tests::test_resolve_base_branch
+   RETRY 2/3 [         ] moltis-projects worktree::tests::test_create_from_base
+        PASS [   0.400s] moltis-projects worktree::tests::test_has_uncommitted_changes
+        PASS [   0.013s] moltis-provider-setup tests::config_with_saved_keys_does_not_override_existing
+        PASS [   0.012s] moltis-provider-setup tests::config_with_saved_keys_merges
+        PASS [   0.012s] moltis-provider-setup tests::config_with_saved_keys_merges_base_url_and_models
+        PASS [   0.009s] moltis-provider-setup tests::derive_provider_name_from_url_extracts_host
+        PASS [   0.430s] moltis-projects worktree::tests::test_cleanup_worktree
+        PASS [   0.010s] moltis-provider-setup tests::existing_custom_provider_for_base_url_prefers_canonical_name
+        PASS [   0.010s] moltis-provider-setup tests::github_copilot_is_oauth_provider
+        PASS [   0.011s] moltis-provider-setup tests::has_explicit_provider_settings_detects_populated_provider_entries
+        PASS [   0.010s] moltis-provider-setup tests::is_custom_provider_detects_prefix
+        PASS [   0.011s] moltis-provider-setup tests::key_store_invalid_json_returns_empty_map
+        PASS [   0.012s] moltis-provider-setup tests::key_store_migrates_old_format
+        PASS [   0.013s] moltis-provider-setup tests::key_store_path_reports_backing_file
+        PASS [   0.013s] moltis-provider-setup tests::key_store_remove
+        PASS [   0.013s] moltis-provider-setup tests::key_store_save_and_load
+        PASS [   0.012s] moltis-provider-setup tests::key_store_save_config_clears_empty_values
+        PASS [   0.081s] moltis-provider-setup tests::key_store_concurrent_writes_do_not_drop_provider_entries
+        PASS [   0.013s] moltis-provider-setup tests::key_store_save_config_preserves_existing_fields
+        PASS [   0.012s] moltis-provider-setup tests::key_store_save_config_preserves_other_providers
+        PASS [   0.011s] moltis-provider-setup tests::key_store_save_config_with_all_fields
+        PASS [   0.011s] moltis-provider-setup tests::key_store_save_config_with_display_name
+  TRY 2 FAIL [   0.151s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 2 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.14s
+
+──── TRY 2 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (645174) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 2 FAIL [   0.151s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 2 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.14s
+
+──── TRY 2 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (645170) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 3/3 [         ] moltis-projects worktree::tests::test_resolve_base_branch
+   RETRY 3/3 [         ] moltis-projects worktree::tests::test_create_from_base
+        PASS [   0.011s] moltis-provider-setup tests::known_provider_names_unique
+        PASS [   0.010s] moltis-provider-setup tests::known_providers_have_valid_auth_types
+        PASS [   0.012s] moltis-provider-setup tests::known_providers_include_new_providers
+        PASS [   0.011s] moltis-provider-setup tests::local_providers_have_no_env_key
+        PASS [   0.013s] moltis-provider-setup tests::make_unique_provider_name_appends_suffix
+        PASS [   0.012s] moltis-provider-setup tests::new_api_key_providers_have_correct_env_keys
+        PASS [   0.012s] moltis-provider-setup tests::noop_service_returns_empty
+        PASS [   0.012s] moltis-provider-setup tests::normalize_base_url_for_compare_is_stable
+        PASS [   0.011s] moltis-provider-setup tests::normalize_model_list_strips_provider_namespace
+        PASS [   0.011s] moltis-provider-setup tests::normalize_ollama_api_base_url_strips_v1
+        PASS [   0.009s] moltis-provider-setup tests::normalize_ollama_openai_base_url_appends_v1
+  TRY 3 FAIL [   0.154s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.15s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (645314) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 15 tests still running
+  TRY 3 FAIL [   0.154s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.15s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (645313) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.675s] moltis-provider-setup tests::available_hides_configured_provider_outside_offered
+        PASS [   0.674s] moltis-provider-setup tests::available_includes_configured_custom_provider_outside_offered
+        PASS [   0.697s] moltis-provider-setup tests::available_hides_local_providers_on_cloud
+        PASS [   0.710s] moltis-provider-setup tests::available_hides_unconfigured_providers_not_in_offered_list
+        PASS [   0.756s] moltis-provider-setup tests::available_includes_default_base_urls
+        PASS [   0.777s] moltis-provider-setup tests::available_includes_subscription_provider_with_oauth_token_outside_offered
+        PASS [   0.798s] moltis-provider-setup tests::available_respects_offered_order
+        PASS [   0.911s] moltis-provider-setup tests::available_shows_all_providers_locally
+        PASS [   0.970s] moltis-provider-setup tests::available_includes_new_providers
+        PASS [   0.928s] moltis-provider-setup tests::disabled_provider_is_not_reported_configured
+        PASS [   0.784s] moltis-provider-setup tests::live_service_lists_providers
+        PASS [   0.687s] moltis-provider-setup tests::oauth_complete_accepts_callback_input_parameter
+        PASS [   6.276s] moltis-openclaw-import watcher::tests::watcher_detects_new_jsonl_file
+        PASS [   8.755s] moltis-openclaw-import watcher::tests::watcher_ignores_non_jsonl_files
+────────────
+     Summary [  39.152s] 2013/3625 tests run: 2011 passed, 2 failed, 0 skipped
+  TRY 3 FAIL [   0.154s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.15s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (645313) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 3 FAIL [   0.154s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.15s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (645314) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: 1612/3625 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed
+[local/test] failed in 73s
+
+---
+
+PASS [   0.006s] moltis-protocol tests::v4_connect_params_parses_and_converts
+        PASS [   0.566s] moltis-oauth::oauth_tests oauth_flow_exchange_sends_resource_indicator_when_configured
+        PASS [   0.011s] moltis-provider-setup tests::api_key_providers_have_env_key
+        PASS [   0.464s] moltis-projects worktree::tests::test_create_idempotent
+        PASS [   0.469s] moltis-projects worktree::tests::test_copy_project_config_skips_if_exists
+        PASS [   0.453s] moltis-projects worktree::tests::test_run_setup_with_env_vars
+        PASS [   0.470s] moltis-projects worktree::tests::test_has_uncommitted_changes
+        PASS [   0.474s] moltis-projects worktree::tests::test_create_and_list_worktree
+        PASS [   0.444s] moltis-projects worktree::tests::test_run_teardown
+        PASS [   0.012s] moltis-provider-setup tests::base_url_to_display_name_strips_api_prefix
+  TRY 1 FAIL [   0.540s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 1 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.53s
+
+──── TRY 1 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (890750) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.016s] moltis-provider-setup tests::codex_cli_auth_has_access_token_requires_tokens_access_token
+   RETRY 2/3 [         ] moltis-projects worktree::tests::test_resolve_base_branch
+        PASS [   0.014s] moltis-provider-setup tests::config_with_saved_keys_does_not_override_existing
+        PASS [   0.581s] moltis-projects worktree::tests::test_copy_project_config
+        PASS [   0.020s] moltis-provider-setup tests::config_with_saved_keys_merges
+        PASS [   0.589s] moltis-projects worktree::tests::test_cleanup_worktree
+        PASS [   0.016s] moltis-provider-setup tests::config_with_saved_keys_merges_base_url_and_models
+        PASS [   0.016s] moltis-provider-setup tests::derive_provider_name_from_url_extracts_host
+  TRY 1 FAIL [   0.607s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 1 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.60s
+
+──── TRY 1 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (890732) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 2/3 [         ] moltis-projects worktree::tests::test_create_from_base
+        PASS [   0.016s] moltis-provider-setup tests::existing_custom_provider_for_base_url_prefers_canonical_name
+        PASS [   0.013s] moltis-provider-setup tests::github_copilot_is_oauth_provider
+        PASS [   0.011s] moltis-provider-setup tests::has_explicit_provider_settings_detects_populated_provider_entries
+        PASS [   0.011s] moltis-provider-setup tests::is_custom_provider_detects_prefix
+        PASS [   0.013s] moltis-provider-setup tests::key_store_invalid_json_returns_empty_map
+        PASS [   0.013s] moltis-provider-setup tests::key_store_migrates_old_format
+        PASS [   0.012s] moltis-provider-setup tests::key_store_path_reports_backing_file
+        PASS [   0.014s] moltis-provider-setup tests::key_store_remove
+        PASS [   0.017s] moltis-provider-setup tests::key_store_save_and_load
+        PASS [   0.086s] moltis-provider-setup tests::key_store_concurrent_writes_do_not_drop_provider_entries
+        PASS [   0.016s] moltis-provider-setup tests::key_store_save_config_clears_empty_values
+  TRY 2 FAIL [   0.171s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 2 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.16s
+
+──── TRY 2 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (891262) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.015s] moltis-provider-setup tests::key_store_save_config_preserves_existing_fields
+   RETRY 3/3 [         ] moltis-projects worktree::tests::test_resolve_base_branch
+        PASS [   0.014s] moltis-provider-setup tests::key_store_save_config_preserves_other_providers
+        PASS [   0.013s] moltis-provider-setup tests::key_store_save_config_with_all_fields
+        PASS [   0.014s] moltis-provider-setup tests::key_store_save_config_with_display_name
+        PASS [   0.013s] moltis-provider-setup tests::known_provider_names_unique
+        PASS [   0.013s] moltis-provider-setup tests::known_providers_have_valid_auth_types
+        PASS [   0.013s] moltis-provider-setup tests::known_providers_include_new_providers
+  TRY 2 FAIL [   0.161s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 2 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.15s
+
+──── TRY 2 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (891315) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 3/3 [         ] moltis-projects worktree::tests::test_create_from_base
+        PASS [   0.012s] moltis-provider-setup tests::local_providers_have_no_env_key
+        PASS [   0.015s] moltis-provider-setup tests::make_unique_provider_name_appends_suffix
+        PASS [   0.014s] moltis-provider-setup tests::new_api_key_providers_have_correct_env_keys
+        PASS [   0.013s] moltis-provider-setup tests::noop_service_returns_empty
+        PASS [   0.013s] moltis-provider-setup tests::normalize_base_url_for_compare_is_stable
+        PASS [   0.014s] moltis-provider-setup tests::normalize_model_list_strips_provider_namespace
+        PASS [   0.013s] moltis-provider-setup tests::normalize_ollama_api_base_url_strips_v1
+        PASS [   0.015s] moltis-provider-setup tests::normalize_ollama_openai_base_url_appends_v1
+  TRY 3 FAIL [   0.176s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.17s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (891407) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 15 tests still running
+  TRY 3 FAIL [   0.183s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.17s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (891453) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.951s] moltis-provider-setup tests::available_hides_local_providers_on_cloud
+        PASS [   0.986s] moltis-provider-setup tests::available_hides_configured_provider_outside_offered
+        PASS [   1.069s] moltis-provider-setup tests::available_includes_configured_custom_provider_outside_offered
+        PASS [   1.133s] moltis-provider-setup tests::available_hides_unconfigured_providers_not_in_offered_list
+        PASS [   1.100s] moltis-provider-setup tests::available_includes_new_providers
+        PASS [   1.120s] moltis-provider-setup tests::available_shows_all_providers_locally
+        PASS [   1.165s] moltis-provider-setup tests::available_includes_default_base_urls
+        PASS [   1.188s] moltis-provider-setup tests::available_includes_subscription_provider_with_oauth_token_outside_offered
+        PASS [   1.210s] moltis-provider-setup tests::available_respects_offered_order
+        PASS [   1.133s] moltis-provider-setup tests::disabled_provider_is_not_reported_configured
+        PASS [   1.001s] moltis-provider-setup tests::live_service_lists_providers
+        PASS [   0.907s] moltis-provider-setup tests::oauth_complete_accepts_callback_input_parameter
+        PASS [   6.285s] moltis-openclaw-import watcher::tests::watcher_detects_new_jsonl_file
+        PASS [   9.428s] moltis-openclaw-import watcher::tests::watcher_ignores_non_jsonl_files
+────────────
+     Summary [  46.176s] 2013/3625 tests run: 2011 passed, 2 failed, 0 skipped
+  TRY 3 FAIL [   0.183s] moltis-projects worktree::tests::test_create_from_base
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_create_from_base
+
+running 1 test
+test worktree::tests::test_create_from_base ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_create_from_base
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.17s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_create_from_base
+
+thread 'worktree::tests::test_create_from_base' (891453) panicked at crates/projects/src/worktree.rs:553:14:
+called `Result::unwrap()` on an `Err` value: DefaultBranchNotFound
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 3 FAIL [   0.176s] moltis-projects worktree::tests::test_resolve_base_branch
+──── TRY 3 STDOUT:       moltis-projects worktree::tests::test_resolve_base_branch
+
+running 1 test
+test worktree::tests::test_resolve_base_branch ... FAILED
+
+failures:
+
+failures:
+    worktree::tests::test_resolve_base_branch
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 33 filtered out; finished in 0.17s
+
+──── TRY 3 STDERR:       moltis-projects worktree::tests::test_resolve_base_branch
+
+thread 'worktree::tests::test_resolve_base_branch' (891407) panicked at crates/projects/src/worktree.rs:540:9:
+assertion failed: base.is_ok()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: 1612/3625 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed
+[local/test] failed in 85s
+~/.s/w/m/soul-location soul-location ❯
+
+Run those tests yourself until it's fixed
+
+---
+
+-  202 …] › e2e/specs/onboarding-anthropic.spec.js:73:2 › Onboarding Anthropic provider › configures Anthropic and loads models
+  -  203 …spec.js:114:2 › Onboarding Anthropic provider › continue without selecting a model still persists Anthropic credentials
+
+
+  1) [default] › e2e/specs/settings-nav.spec.js:146:2 › Settings navigation › identity name fields autosave on blur
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AutoBotNameA"
+    Received: "e2e-bot"
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      159 |             await botNameInput.blur();
+      160 |             await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    > 161 |             await expect
+          |             ^
+      162 |                     .poll(() => page.evaluate(() => (window.__MOLTIS__?.identity?.name || "").trim()))
+      163 |                     .toBe(nextValues.nextBotName);
+      164 |
+        at /Users/penso/.superset/worktrees/moltis/soul-location/crates/web/ui/e2e/specs/settings-nav.spec.js:161:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/settings-nav-Settings-navi-28bec-ame-fields-autosave-on-blur-default/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: error-context (text/markdown) ───────────────────────────────────────────────────
+    ## Error Context
+
+    **Test**: identity name fields autosave on blur
+    **Status**: failed
+
+    ### Page 1: [soul-location] e2e-bot
+    - **URL**: http://127.0.0.1:59684/settings/identity
+
+    ```
+    Running on: soul-location
+    e2e-bot
+    345MB · 25GB free / 68GB
+    Settings
+    Report issue
+    Back to Chats
+    GENERAL
+    Identity
+    Agents
+    No...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/settings-nav-Settings-navi-28bec-ame-fields-autosave-on-blur-default/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/settings-nav-Settings-navi-28bec-ame-fields-autosave-on-blur-default/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/settings-nav-Settings-navi-28bec-ame-fields-autosave-on-blur-default/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [default] › e2e/specs/settings-nav.spec.js:146:2 › Settings navigation › identity name fields autosave on blur
+  5 skipped
+  22 did not run
+  197 passed (2.7m)
+[local/e2e] failed in 164s
+~/.s/w/m/soul-location soul-location ❯
+
+---
+
+Look at comments at https://github.com/moltis-org/moltis/pull/384 and fixes anything

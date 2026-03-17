@@ -1,0 +1,27 @@
+Look at this issue https://github.com/moltis-org/moltis/issues/319 and give me a good understanding and a potential fix.
+
+---
+
+And what are the comments about this:
+
+Yes, this is very broken behavior, which has terrible consequences:
+
+agents are extremely dumb
+this burns through tokens because resubmitted conversation does not match the original one, so prefix caching does not work
+
+please dig the code and give me a clear understanding.
+
+---
+
+Please implement this
+
+---
+
+<task-notification>
+<task-id>bd18gw0un</task-id>
+<tool-use-id>toolu_01Aa3t9Xzr3AK3bb9QNSX6hm</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-penso--superset-worktrees-moltis-tool-call-output/tasks/bd18gw0un.output</output-file>
+<status>completed</status>
+<summary>Background command "Run values_to_chat_messages tests" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-penso--superset-worktrees-moltis-tool-call-output/tasks/bd18gw0un.output

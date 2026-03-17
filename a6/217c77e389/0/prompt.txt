@@ -1,0 +1,419 @@
+Implement the following plan:
+
+# Fix: STT test 401 during onboarding (#378)
+
+## Context
+
+During first-time onboarding, the STT "Test" button fails with `401 AUTH_NOT_AUTHENTICATED`.
+All voice config operations use WebSocket RPC (which bypasses auth via the public `/ws` path),
+but `transcribeAudio()` uniquely uses HTTP fetch (`POST /api/sessions/{key}/upload`) which goes
+through `auth_gate`. After the auth setup step, `is_setup_complete()=true` and `check_auth()`
+requires a valid session cookie. If the cookie fails (Docker networking, cookie domain, browser
+behavior), the request gets 401.
+
+The fix: in `auth_gate`'s `Unauthorized` branch, allow local API requests through with
+`Loopback` identity when onboarding hasn't completed yet (`.onboarded` sentinel file absent).
+
+## Changes
+
+### 1. `crates/service-traits/src/lib.rs` — Update NoopOnboardingService
+
+Change `NoopOnboardingService::wizard_status()` to return `"onboarded": true`:
+
+```rust
+// Line 808: change from
+Ok(serde_json::json!({ "active": false }))
+// to
+Ok(serde_json::json!({ "active": false, "onboarded": true }))
+```
+
+**Why:** The noop service is used in tests and when no real onboarding is configured. In both
+cases, onboarding is effectively "done." Without this, the new bypass would activate in all
+existing tests that use `start_auth_server()` (bound to `127.0.0.1` = local), breaking tests
+like `unauthenticated_returns_401`.
+
+### 2. `crates/gateway/src/auth_middleware.rs` — Add onboarding bypass
+
+In `auth_gate()`, add a `tracing::debug` import and insert an onboarding bypass at the start
+of the `Unauthorized` branch (before the existing API/WS check):
+
+```rust
+AuthResult::Unauthorized => {
+    // NEW: During onboarding, local API/WS requests may lack a valid
+    // session cookie. Allow them through with Loopback identity.
+    if is_local && (path.starts_with("/api/") || path.starts_with("/ws/")) {
+        let onboarded = state
+            .gateway
+            .services
+            .onboarding
+            .wizard_status()
+            .await
+            .ok()
+            .and_then(|v| v.get("onboarded").and_then(|v| v.as_bool()))
+            .unwrap_or(false);
+        if !onboarded {
+            debug!(path, remote = %addr, "auth bypass: local request during onboarding");
+            request.extensions_mut().insert(AuthIdentity {
+                method: AuthMethod::Loopback,
+            });
+            return next.run(request).await;
+        }
+    }
+    // ... existing Unauthorized handling unchanged
+}
+```
+
+The `wizard_status()` call only executes when `is_local=true` AND the path is `/api/*` or
+`/ws/*` AND auth returned `Unauthorized`. This is a narrow cold path.
+
+### 3. `crates/gateway/tests/auth_middleware.rs` — Add integration tests
+
+**3a. Add `MockOnboardingService`:**
+
+```rust
+struct MockOnboardingService { onboarded: AtomicBool }
+```
+
+Implement `OnboardingService` with `wizard_status()` returning the controlled `onboarded`
+value. Delegate all other methods to noop defaults.
+
+**3b. Add test helpers:**
+
+- `start_auth_server_with_onboarding(onboarded: bool)` — local server with mock onboarding
+- `start_proxied_server_with_onboarding(onboarded: bool)` — proxied (remote) server with mock
+
+**3c. Add tests:**
+
+| Test | Setup | Expected |
+|------|-------|----------|
+| `local_api_during_onboarding_bypasses_auth` | local, password set, onboarded=false | 200 |
+| `local_api_after_onboarding_requires_auth` | local, password set, onboarded=true | 401 |
+| `remote_api_during_onboarding_requires_auth` | proxied, password set, onboarded=false | 401 |
+
+## Verification
+
+1. `cargo test` — all existing tests pass + new tests pass
+2. `cargo +nightly-2025-11-30 fmt --all -- --check`
+3. `cargo +nightly-2025-11-30 clippy --workspace --all-features --all-targets -- -D warnings`
+4. Manual QA: fresh install → onboarding → voice step → STT test should work
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/penso/.claude/projects/-Users-penso--superset-worktrees-moltis-stt-401-during-onboarding/d0d38111-601b-4788-93ca-5dfa3082810d.jsonl
+
+---
+
+commit, push, create a PR
+
+---
+
+cccccclvttvndkkjtuijjhhgdbftdghlthnrugfvlklh
+
+---
+
+try again
+
+---
+
+[local/zizmor] passed in 0s
+Diff in /Users/penso/.superset/worktrees/moltis/stt-401-during-onboarding/crates/cli/src/node_commands.rs:157:
+             let node_config = moltis_node_host::NodeConfig {
+                 gateway_url: config.gateway_url,
+                 device_token: config.device_token,
+-                node_id: config.node_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
++                node_id: config
++                    .node_id
++                    .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                 display_name: config.display_name,
+                 platform: std::env::consts::OS.into(),
+                 caps: vec![
+Diff in /Users/penso/.superset/worktrees/moltis/stt-401-during-onboarding/crates/gateway/src/auth_middleware.rs:212:
+ fn is_public_path(path: &str) -> bool {
+     matches!(
+         path,
+-        "/health" | "/auth/callback" | "/manifest.json" | "/sw.js" | "/login" | "/setup-required" | "/ws"
++        "/health"
++            | "/auth/callback"
++            | "/manifest.json"
++            | "/sw.js"
++            | "/login"
++            | "/setup-required"
++            | "/ws"
+     ) || path.starts_with("/api/auth/")
+         || path.starts_with("/api/public/")
+         || path.starts_with("/api/channels/msteams/")
+error: Recipe `format-check` failed on line 14 with exit code 1
+[local/fmt] failed in 1s
+[local/fmt] total 1s
+[local/biome] total 0s
+[local/i18n] total 0s
+One or more parallel local checks failed.
+
+---
+
+commit and push
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+Fix the pineentry program, I see a ncurse stuffcccccdebgltidgrnehijknrhblnnucccurtgclhudcbk
+
+---
+
+[local/zizmor] passed in 6s=======>  ] 1313/1390: moltis-slack, wacore-libsignal, moltis_memory(test), moltis-caldav, moltis_c…
+    Checking moltis-telegram v0.10.18 (/Users/penso/.superset/worktrees/moltis/stt-401-during-onboarding/crates/telegram)
+error: unused variable: `config`
+   --> crates/node-host/src/service.rs:203:5
+    |
+203 |     config: &ServiceConfig,
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+    |
+    = note: `-D unused-variables` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_variables)]`
+
+error: unused variable: `config`
+   --> crates/node-host/src/service.rs:394:49
+    |
+394 | pub fn generate_systemd_unit(moltis_bin: &Path, config: &ServiceConfig, log_path: &Path) -> String {
+    |                                                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+    Checking wacore-appstate v0.2.0
+error: useless use of `vec!`
+   --> crates/node-host/src/service.rs:209:16
+    |
+209 |       let args = vec![
+    |  ________________^
+210 | |         format!("    <string>{bin}</string>"),
+211 | |         "    <string>node</string>".to_string(),
+212 | |         "    <string>run</string>".to_string(),
+213 | |     ];
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_vec
+    = note: `-D clippy::useless-vec` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_vec)]`
+help: you can use an array directly
+    |
+209 ~     let args = [format!("    <string>{bin}</string>"),
+210 +         "    <string>node</string>".to_string(),
+211 ~         "    <string>run</string>".to_string()];
+    |
+
+error: could not compile `moltis-node-host` (lib) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+      Timing report saved to /Users/penso/.superset/worktrees/moltis/stt-401-during-onboarding/target/cargo-timings/cargo-timing-20260310T161320.003501Z.html
+[local/lint] failed in 26s
+~/.s/w/m/stt-401-during-onboarding stt-401-during-onboarding ❯
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+commit and push changes
+
+---
+
+[OValidating PR #386 (eb1705dcd5a2d35e5a28a7304df83cf05405216f) in moltis-org/moltis
+Publishing commit statuses to: moltis-org/moltis
+Current CI workflow: https://github.com/moltis-org/moltis/actions/runs/22912627635
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-372730c6a2677503
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-762d9daf3e1494a4
+i18n parity OK: 3 locales, 18 namespaces.
+cargo +nightly-2025-11-30 fmt --all -- --check
+🌈 zizmor v1.22.0
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+Checked 133 files in 80ms. No fixes applied.
+Diff in /Users/penso/.superset/worktrees/moltis/stt-401-during-onboarding/crates/node-host/src/service.rs:391:
+ }
+
+ /// Generate a systemd user unit file.
+-pub fn generate_systemd_unit(moltis_bin: &Path, _config: &ServiceConfig, log_path: &Path) -> String {
++pub fn generate_systemd_unit(
++    moltis_bin: &Path,
++    _config: &ServiceConfig,
++    log_path: &Path,
++) -> String {
+     let bin = moltis_bin.display();
+     let log = log_path.display();
+
+[local/i18n] passed in 1s
+[local/biome] passed in 1s
+error: Recipe `format-check` failed on line 14 with exit code 1
+[local/fmt] failed in 2s
+[local/fmt] total 2s
+[local/biome] total 2s
+[local/i18n] total 1s
+One or more parallel local checks failed.
+~/.s/w/m/stt-401-during-onboarding stt-401-during-onboarding ❯  INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/release.yml
+No findings to report. Good job! (8 ignored, 47 suppressed)
+[local/zizmor] passed in 6s
+~/.s/w/m/stt-401-during-onboarding stt-401-during-onboarding ❯
+
+---
+
+PASS [   0.009s] moltis-node-host runner::tests::default_config_has_system_run_cap
+        PASS [   0.009s] moltis-node-host runner::tests::default_config_platform_is_current_os
+        PASS [   0.010s] moltis-node-host runner::tests::system_which_finds_sh
+  TRY 1 FAIL [   0.007s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 1 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 1 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (3253595) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.010s] moltis-node-host runner::tests::system_which_missing_binary
+   RETRY 2/3 [         ] moltis-node-host service::tests::launchd_plist_contains_required_elements
+        PASS [   0.013s] moltis-node-host runner::tests::system_run_exit_code
+        PASS [   0.014s] moltis-node-host runner::tests::system_run_echo
+        PASS [   0.014s] moltis-node-host runner::tests::system_run_captures_stderr
+        PASS [   0.009s] moltis-node-host service::tests::service_config_default_timeout
+        PASS [   0.009s] moltis-node-host service::tests::launchd_plist_omits_optional_fields
+        PASS [   0.008s] moltis-node-host service::tests::service_config_roundtrip
+        PASS [   0.009s] moltis-node-host service::tests::service_config_save_and_load
+  TRY 2 FAIL [   0.007s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 2 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 2 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (3253622) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.009s] moltis-node-host service::tests::status_display
+        PASS [   0.007s] moltis-node-host service::tests::systemd_unit_contains_required_elements
+   RETRY 3/3 [         ] moltis-node-host service::tests::launchd_plist_contains_required_elements
+        PASS [   0.008s] moltis-node-host service::tests::systemd_unit_omits_optional_fields
+        PASS [   0.008s] moltis-oauth callback_input::tests::parses_compact_code_state
+        PASS [   0.009s] moltis-oauth callback_input::tests::parses_query_string
+        PASS [   0.009s] moltis-oauth callback_input::tests::parses_full_callback_url
+        PASS [   0.009s] moltis-oauth callback_input::tests::rejects_missing_state
+        PASS [   0.009s] moltis-oauth defaults::tests::load_github_copilot_config
+        PASS [   0.010s] moltis-oauth defaults::tests::callback_port_empty_redirect_uri
+  TRY 3 FAIL [   0.008s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 3 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (3253650) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 15 tests still running
+        PASS [   0.009s] moltis-oauth defaults::tests::callback_port_with_redirect_uri
+        PASS [   0.008s] moltis-oauth defaults::tests::load_openai_codex_config
+        PASS [   0.008s] moltis-oauth defaults::tests::load_kimi_code_config
+        PASS [   0.009s] moltis-oauth defaults::tests::load_unknown_provider_returns_none
+        PASS [   0.009s] moltis-oauth device_flow::tests::device_code_response_serialize_roundtrip
+        PASS [   0.009s] moltis-oauth device_flow::tests::device_code_response_deserialize
+        PASS [   0.008s] moltis-oauth device_flow::tests::device_code_response_with_interval
+        PASS [   0.008s] moltis-oauth device_flow::tests::device_code_response_with_verification_uri_complete
+        PASS [   0.060s] moltis-network-filter domain_approval::tests::test_wait_for_decision_timeout
+  TRY 3 FAIL [   0.620s] moltis-gateway::chat_ui root_redirects_to_onboarding_when_not_onboarded
+──── TRY 3 STDOUT:       moltis-gateway::chat_ui root_redirects_to_onboarding_when_not_onboarded
+
+running 1 test
+test root_redirects_to_onboarding_when_not_onboarded ... FAILED
+
+failures:
+
+failures:
+    root_redirects_to_onboarding_when_not_onboarded
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+
+──── TRY 3 STDERR:       moltis-gateway::chat_ui root_redirects_to_onboarding_when_not_onboarded
+
+thread 'root_redirects_to_onboarding_when_not_onboarded' (3253665) panicked at crates/gateway/tests/chat_ui.rs:58:5:
+assertion failed: body.contains("<title>moltis onboarding</title>")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.510s] moltis-memory embeddings_batch::tests::test_below_threshold_uses_inner
+        PASS [   0.507s] moltis-memory embeddings_batch::tests::test_single_embed_uses_inner
+        PASS [   0.270s] moltis-memory session_export::tests::test_cleanup_removes_excess_exports
+        PASS [   0.211s] moltis-metrics recorder::tests::test_init_disabled
+        PASS [   4.099s] moltis-gateway::auth_middleware password_change_on_initialized_vault_no_recovery_key
+────────────
+     Summary [  29.717s] 1691/3626 tests run: 1689 passed, 2 failed, 0 skipped
+  TRY 3 FAIL [   0.620s] moltis-gateway::chat_ui root_redirects_to_onboarding_when_not_onboarded
+──── TRY 3 STDOUT:       moltis-gateway::chat_ui root_redirects_to_onboarding_when_not_onboarded
+
+running 1 test
+test root_redirects_to_onboarding_when_not_onboarded ... FAILED
+
+failures:
+
+failures:
+    root_redirects_to_onboarding_when_not_onboarded
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+
+──── TRY 3 STDERR:       moltis-gateway::chat_ui root_redirects_to_onboarding_when_not_onboarded
+
+thread 'root_redirects_to_onboarding_when_not_onboarded' (3253665) panicked at crates/gateway/tests/chat_ui.rs:58:5:
+assertion failed: body.contains("<title>moltis onboarding</title>")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 3 FAIL [   0.008s] moltis-node-host service::tests::launchd_plist_contains_required_elements
+──── TRY 3 STDOUT:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+running 1 test
+test service::tests::launchd_plist_contains_required_elements ... FAILED
+
+failures:
+
+failures:
+    service::tests::launchd_plist_contains_required_elements
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-node-host service::tests::launchd_plist_contains_required_elements
+
+thread 'service::tests::launchd_plist_contains_required_elements' (3253650) panicked at crates/node-host/src/service.rs:629:9:
+assertion failed: plist.contains("ws://gw:9090/ws")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: 1935/3626 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed
+[local/test] failed in 270s
+~/.s/w/m/stt-401-during-onboarding stt-401-during-onboarding ❯

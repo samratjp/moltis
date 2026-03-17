@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "ea8f8bbc14af",
+  "strategy": "manual-commit",
+  "branch": "soul-location",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/node-host/src/service.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ea/8f8bbc14af/0/metadata.json",
+      "transcript": "/ea/8f8bbc14af/0/full.jsonl",
+      "context": "/ea/8f8bbc14af/0/context.md",
+      "content_hash": "/ea/8f8bbc14af/0/content_hash.txt",
+      "prompt": "/ea/8f8bbc14af/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 7,
+    "cache_creation_tokens": 1388,
+    "cache_read_tokens": 347803,
+    "output_tokens": 75,
+    "api_call_count": 5
+  }
+}

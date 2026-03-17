@@ -1,0 +1,41 @@
+~/.s/w/m/local-llm-raw-token local-llm-raw-token ❯ ./scripts/local-validate.sh 397
+Detected macOS without nvcc; forcing non-CUDA local validation commands (no --all-features).
+Override with LOCAL_VALIDATE_LINT_CMD / LOCAL_VALIDATE_TEST_CMD / LOCAL_VALIDATE_BUILD_CMD / LOCAL_VALIDATE_COVERAGE_CMD if needed.
+Validating PR #397 (27f1fe6ce51efde75ffe77d96c4b2d60014c4358) in moltis-org/moltis
+Publishing commit statuses to: moltis-org/moltis
+Current CI workflow: https://github.com/moltis-org/moltis/actions/runs/22971704536
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-372730c6a2677503
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-762d9daf3e1494a4
+🌈 zizmor v1.23.0
+cargo +nightly-2025-11-30 fmt --all -- --check
+i18n parity OK: 3 locales, 18 namespaces.
+Checked 133 files in 74ms. No fixes applied.
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+[local/i18n] passed in 0s
+[local/biome] passed in 0s
+Diff in /Users/penso/.superset/worktrees/moltis/local-llm-raw-token/crates/providers/src/local_llm/backend.rs:1132:
+             } else {
+                 // Strip any chat template stop tokens that slipped through
+                 let cleaned = strip_chat_template_tokens(&line);
+-                if !cleaned.is_empty()
+-                    && tx.blocking_send(StreamEvent::Delta(cleaned)).is_err()
+-                {
++                if !cleaned.is_empty() && tx.blocking_send(StreamEvent::Delta(cleaned)).is_err() {
+                     break;
+                 }
+             }
+error: Recipe `format-check` failed on line 14 with exit code 1
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+[local/fmt] failed in 2s
+[local/fmt] total 3s
+[local/biome] total 1s
+[local/i18n] total 1s
+One or more parallel local checks failed.
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+~/.s/w/m/local-llm-raw-token local-llm-raw-token ❯  INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/release.yml
+No findings to report. Good job! (36 ignored, 47 suppressed)
+[local/zizmor] passed in 5s
+~/.s/w/m/local-llm-raw-token local-llm-raw-token [?] ❯
