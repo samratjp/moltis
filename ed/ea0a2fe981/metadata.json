@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "edea0a2fe981",
+  "strategy": "manual-commit",
+  "branch": "CHA-8-crm-crate-scaffold",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "Cargo.toml",
+    "crates/cli/Cargo.toml",
+    "crates/crm/Cargo.toml",
+    "crates/crm/migrations/20260317000000_init.sql",
+    "crates/crm/src/error.rs",
+    "crates/crm/src/lib.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/types.rs",
+    "crates/gateway/Cargo.toml",
+    "crates/gateway/src/server.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ed/ea0a2fe981/0/metadata.json",
+      "transcript": "/ed/ea0a2fe981/0/full.jsonl",
+      "context": "/ed/ea0a2fe981/0/context.md",
+      "content_hash": "/ed/ea0a2fe981/0/content_hash.txt",
+      "prompt": "/ed/ea0a2fe981/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 364,
+    "cache_creation_tokens": 227842,
+    "cache_read_tokens": 7482835,
+    "output_tokens": 28411,
+    "api_call_count": 105
+  }
+}

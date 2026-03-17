@@ -1,0 +1,172 @@
+~/.s/w/m/tool-call-output tool-call-output ❯ ./scripts/local-validate.sh 389
+Detected macOS without nvcc; forcing non-CUDA local validation commands (no --all-features).
+Override with LOCAL_VALIDATE_LINT_CMD / LOCAL_VALIDATE_TEST_CMD / LOCAL_VALIDATE_BUILD_CMD / LOCAL_VALIDATE_COVERAGE_CMD if needed.
+Validating PR #389 (45a4b2e3d04214a5932931d916ee5e0bb55a24b8) in moltis-org/moltis
+Publishing commit statuses to: moltis-org/moltis
+Current CI workflow: https://github.com/moltis-org/moltis/actions/runs/22928440314
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-64dc900a7d790e9f
+Removing cached llama build dir: target/debug/build/llama-cpp-sys-2-bbd6b350f8c732d9
+bash: biome: command not found
+cargo +nightly-2025-11-30 fmt --all -- --check
+i18n parity OK: 3 locales, 18 namespaces.
+[local/biome] failed in 1s
+🌈 zizmor v1.23.0
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+[local/i18n] passed in 1s
+[local/fmt] passed in 2s
+[local/fmt] total 3s
+[local/biome] total 1s
+[local/i18n] total 2s
+One or more parallel local checks failed.
+mise WARN  Config files in ~/.superset/worktrees/moltis/tool-call-output/mise.toml are not trusted.
+Trust them with `mise trust`. See https://mise.jdx.dev/cli/trust.html for more information.
+~/.s/w/m/tool-call-output tool-call-output ❯  INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/release.yml
+No findings to report. Good job! (36 ignored, 47 suppressed)
+[local/zizmor] passed in 6s
+~/.s/w/m/tool-call-output tool-call-output ❯
+
+---
+
+PASS [   0.019s] moltis-agents model::tests::convert_skips_metadata_fields
+        PASS [   0.018s] moltis-agents model::tests::convert_skips_notice_entries
+        PASS [   1.848s] moltis::bin/moltis sandbox_commands::tests::container_backends_require_image_build
+  TRY 1 FAIL [   0.019s] moltis-agents model::tests::convert_skips_tool_result_entries
+──── TRY 1 STDOUT:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+running 1 test
+test model::tests::convert_skips_tool_result_entries ... FAILED
+
+failures:
+
+failures:
+    model::tests::convert_skips_tool_result_entries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 251 filtered out; finished in 0.00s
+
+──── TRY 1 STDERR:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+thread 'model::tests::convert_skips_tool_result_entries' (14562115) panicked at crates/agents/src/model.rs:721:9:
+assertion `left == right` failed
+  left: 3
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+   RETRY 2/3 [         ] moltis-agents model::tests::convert_skips_tool_result_entries
+        PASS [   0.017s] moltis-agents model::tests::convert_tool_result_error_to_tool_message
+        PASS [   0.019s] moltis-agents model::tests::convert_tool_message
+        PASS [   0.020s] moltis-agents model::tests::convert_tool_result_to_tool_message
+        PASS [   1.858s] moltis::bin/moltis sandbox_commands::tests::restricted_host_skips_image_build
+        PASS [   0.017s] moltis-agents model::tests::default_model_metadata_returns_context_window
+        PASS [   1.859s] moltis::bin/moltis sandbox_commands::tests::slug_empty_falls_back_to_moltis
+        PASS [   1.861s] moltis::bin/moltis sandbox_commands::tests::slug_collapses_consecutive_dashes
+        PASS [   0.016s] moltis-agents model::tests::roundtrip_to_openai_and_back
+        PASS [   0.016s] moltis-agents model::tests::injected_role_prefix_stays_in_user_message
+  TRY 2 FAIL [   0.016s] moltis-agents model::tests::convert_skips_tool_result_entries
+──── TRY 2 STDOUT:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+running 1 test
+test model::tests::convert_skips_tool_result_entries ... FAILED
+
+failures:
+
+failures:
+    model::tests::convert_skips_tool_result_entries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 251 filtered out; finished in 0.00s
+
+──── TRY 2 STDERR:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+thread 'model::tests::convert_skips_tool_result_entries' (14562166) panicked at crates/agents/src/model.rs:721:9:
+assertion `left == right` failed
+  left: 3
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   1.774s] moltis::bin/moltis service_commands::tests::systemd_unit_omits_optional_flags
+   RETRY 3/3 [         ] moltis-agents model::tests::convert_skips_tool_result_entries
+        PASS [   0.015s] moltis-agents model::tests::system_message
+        PASS [   0.017s] moltis-agents model::tests::to_openai_assistant_text
+        PASS [   1.848s] moltis::bin/moltis service_commands::tests::launchd_plist_basic
+        PASS [   0.016s] moltis-agents model::tests::to_openai_system
+        PASS [   0.016s] moltis-agents model::tests::to_openai_assistant_with_tools
+        PASS [   0.016s] moltis-agents model::tests::to_openai_tool
+        PASS [   0.015s] moltis-agents model::tests::to_openai_user_multimodal
+        PASS [   0.014s] moltis-agents model::tests::tool_message
+        PASS [   0.016s] moltis-agents model::tests::to_openai_user_text
+        PASS [   1.854s] moltis::bin/moltis service_commands::tests::launchd_plist_omits_optional_flags
+        PASS [   0.017s] moltis-agents model::tests::user_message_text
+        PASS [   0.015s] moltis-agents multimodal::tests::anthropic_content_deserializes_text
+        PASS [   0.015s] moltis-agents multimodal::tests::anthropic_content_deserializes_image
+  TRY 3 FAIL [   0.015s] moltis-agents model::tests::convert_skips_tool_result_entries
+──── TRY 3 STDOUT:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+running 1 test
+test model::tests::convert_skips_tool_result_entries ... FAILED
+
+failures:
+
+failures:
+    model::tests::convert_skips_tool_result_entries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 251 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+thread 'model::tests::convert_skips_tool_result_entries' (14562213) panicked at crates/agents/src/model.rs:721:9:
+assertion `left == right` failed
+  left: 3
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  Cancelling due to test failure: 19 tests still running
+        PASS [   0.014s] moltis-agents multimodal::tests::anthropic_image_content_serializes_correctly
+        PASS [   0.016s] moltis-agents multimodal::tests::anthropic_format_matches_api_spec
+        PASS [   1.886s] moltis::bin/moltis sandbox_commands::tests::slug_lowercases_and_replaces_non_alnum
+        PASS [   0.014s] moltis-agents multimodal::tests::empty_multimodal_content_arrays
+        PASS [   1.874s] moltis::bin/moltis sandbox_commands::tests::slug_trims_leading_trailing_dashes
+        PASS [   0.016s] moltis-agents multimodal::tests::anthropic_multimodal_message_format
+        PASS [   0.016s] moltis-agents multimodal::tests::build_data_uri_roundtrip
+        PASS [   0.014s] moltis-agents multimodal::tests::image_only_multimodal_content
+        PASS [   0.013s] moltis-agents multimodal::tests::large_base64_data
+        PASS [   0.018s] moltis-agents multimodal::tests::anthropic_text_content_serializes_correctly
+        PASS [   0.012s] moltis-agents multimodal::tests::openai_content_deserializes_image
+        PASS [   0.013s] moltis-agents multimodal::tests::openai_content_deserializes_text
+        PASS [   0.011s] moltis-agents multimodal::tests::openai_format_matches_api_spec
+        PASS [   0.014s] moltis-agents multimodal::tests::openai_image_content_serializes_correctly
+        PASS [   1.846s] moltis::bin/moltis service_commands::tests::status_display
+        PASS [   1.879s] moltis::bin/moltis sandbox_commands::tests::wasm_backends_skip_image_build
+        PASS [   1.893s] moltis::bin/moltis sandbox_commands::tests::slug_preserves_alphanumeric
+        PASS [   1.841s] moltis::bin/moltis service_commands::tests::systemd_unit_basic
+        PASS [   1.794s] moltis::bin/moltis service_commands::tests::systemd_unit_with_bind_and_port
+────────────
+     Summary [   5.924s] 106/3625 tests run: 105 passed, 1 failed, 0 skipped
+  TRY 3 FAIL [   0.015s] moltis-agents model::tests::convert_skips_tool_result_entries
+──── TRY 3 STDOUT:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+running 1 test
+test model::tests::convert_skips_tool_result_entries ... FAILED
+
+failures:
+
+failures:
+    model::tests::convert_skips_tool_result_entries
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 251 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-agents model::tests::convert_skips_tool_result_entries
+
+thread 'model::tests::convert_skips_tool_result_entries' (14562213) panicked at crates/agents/src/model.rs:721:9:
+assertion `left == right` failed
+  left: 3
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: 3519/3625 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed
+[local/test] failed in 173s
+~/.s/w/m/tool-call-output tool-call-output ❯
