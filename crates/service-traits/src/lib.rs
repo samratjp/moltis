@@ -1238,6 +1238,156 @@ impl SystemInfoService for NoopSystemInfoService {
     }
 }
 
+// ── CRM ─────────────────────────────────────────────────────────────────────
+
+/// Service interface for CRM operations.
+///
+/// Wraps contact, matter, interaction, and channel-identity CRUD behind the
+/// standard `ServiceResult` boundary.  The real implementation lives in the
+/// gateway (backed by [`moltis_crm::CrmStore`]); `NoopCrmService` is used
+/// when the `crm` feature is not enabled.
+#[async_trait]
+pub trait CrmService: Send + Sync {
+    // ── Contacts ──────────────────────────────────────────────────────────
+
+    /// List all contacts ordered by most-recently-updated first.
+    async fn contacts_list(&self) -> ServiceResult;
+
+    /// Return a single contact by ID.
+    async fn contacts_get(&self, params: Value) -> ServiceResult;
+
+    /// Create a new contact.
+    async fn contacts_create(&self, params: Value) -> ServiceResult;
+
+    /// Update an existing contact.
+    async fn contacts_update(&self, params: Value) -> ServiceResult;
+
+    /// Delete a contact by ID.
+    async fn contacts_delete(&self, params: Value) -> ServiceResult;
+
+    // ── Matters ───────────────────────────────────────────────────────────
+
+    /// List all matters, optionally filtered by contact.
+    async fn matters_list(&self, params: Value) -> ServiceResult;
+
+    /// Return a single matter by ID.
+    async fn matters_get(&self, params: Value) -> ServiceResult;
+
+    /// Create a new matter.
+    async fn matters_create(&self, params: Value) -> ServiceResult;
+
+    /// Update an existing matter.
+    async fn matters_update(&self, params: Value) -> ServiceResult;
+
+    /// Delete a matter by ID.
+    async fn matters_delete(&self, params: Value) -> ServiceResult;
+
+    // ── Interactions ──────────────────────────────────────────────────────
+
+    /// List interactions for a contact or matter.
+    async fn interactions_list(&self, params: Value) -> ServiceResult;
+
+    /// Return a single interaction by ID.
+    async fn interactions_get(&self, params: Value) -> ServiceResult;
+
+    /// Record a new interaction.
+    async fn interactions_create(&self, params: Value) -> ServiceResult;
+
+    /// Update an existing interaction.
+    async fn interactions_update(&self, params: Value) -> ServiceResult;
+
+    /// Delete an interaction by ID.
+    async fn interactions_delete(&self, params: Value) -> ServiceResult;
+
+    // ── Contact channels ──────────────────────────────────────────────────
+
+    /// List channel identities for a contact.
+    async fn channels_list(&self, params: Value) -> ServiceResult;
+
+    /// Link a new channel identity to a contact.
+    async fn channels_link(&self, params: Value) -> ServiceResult;
+
+    /// Unlink a channel identity from a contact.
+    async fn channels_unlink(&self, params: Value) -> ServiceResult;
+}
+
+pub struct NoopCrmService;
+
+#[async_trait]
+impl CrmService for NoopCrmService {
+    async fn contacts_list(&self) -> ServiceResult {
+        Ok(serde_json::json!([]))
+    }
+
+    async fn contacts_get(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn contacts_create(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn contacts_update(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn contacts_delete(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn matters_list(&self, _p: Value) -> ServiceResult {
+        Ok(serde_json::json!([]))
+    }
+
+    async fn matters_get(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn matters_create(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn matters_update(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn matters_delete(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn interactions_list(&self, _p: Value) -> ServiceResult {
+        Ok(serde_json::json!([]))
+    }
+
+    async fn interactions_get(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn interactions_create(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn interactions_update(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn interactions_delete(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn channels_list(&self, _p: Value) -> ServiceResult {
+        Ok(serde_json::json!([]))
+    }
+
+    async fn channels_link(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn channels_unlink(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+}
+
 // ── Services bundle ─────────────────────────────────────────────────────────
 
 use std::sync::Arc;
@@ -1271,6 +1421,7 @@ pub struct Services {
     pub project: Arc<dyn ProjectService>,
     pub local_llm: Arc<dyn LocalLlmService>,
     pub system_info: Arc<dyn SystemInfoService>,
+    pub crm: Arc<dyn CrmService>,
 }
 
 impl Default for Services {
@@ -1299,6 +1450,7 @@ impl Default for Services {
             project: Arc::new(NoopProjectService),
             local_llm: Arc::new(NoopLocalLlmService),
             system_info: Arc::new(NoopSystemInfoService),
+            crm: Arc::new(NoopCrmService),
         }
     }
 }
