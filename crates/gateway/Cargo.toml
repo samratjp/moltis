@@ -34,6 +34,7 @@ moltis-chat            = { workspace = true }
 moltis-common          = { workspace = true }
 moltis-config          = { workspace = true }
 moltis-cron            = { workspace = true }
+moltis-crm             = { optional = true, workspace = true }
 moltis-discord         = { workspace = true }
 moltis-graphql         = { optional = true, workspace = true }
 moltis-mcp             = { workspace = true }
@@ -100,9 +101,11 @@ which                  = { optional = true, workspace = true }
 [features]
 agent = []
 caldav = ["dep:moltis-caldav"]
+crm = ["dep:moltis-crm"]
 default = [
   "agent",
   "caldav",
+  "crm",
   "file-watcher",
   "graphql",
   "local-llm",

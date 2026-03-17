@@ -1869,6 +1869,12 @@ pub async fn prepare_gateway(
         .await
         .expect("failed to run vault migrations");
 
+    // CRM migrations (contacts table).
+    #[cfg(feature = "crm")]
+    moltis_crm::run_migrations(&db_pool)
+        .await
+        .expect("failed to run crm migrations");
+
     // Migrate plugins data into unified skills system (idempotent, non-fatal).
     moltis_skills::migration::migrate_plugins_to_skills(&data_dir).await;
     startup_mem_probe.checkpoint("sqlite.migrations.complete");

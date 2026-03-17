@@ -6043,6 +6043,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "moltis-crm"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "moltis-metrics",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "moltis-cron"
 version = "0.1.0"
 dependencies = [
@@ -6120,6 +6136,7 @@ dependencies = [
  "moltis-chat",
  "moltis-common",
  "moltis-config",
+ "moltis-crm",
  "moltis-cron",
  "moltis-discord",
  "moltis-graphql",
