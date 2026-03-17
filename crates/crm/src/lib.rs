@@ -14,12 +14,13 @@ pub mod types;
 pub use {
     error::{Error, Result},
     store::{CrmStore, MemoryCrmStore, SqliteCrmStore},
-    types::Contact,
+    types::{Contact, ContactChannel, Interaction, InteractionKind, Matter, MatterStatus},
 };
 
 /// Run database migrations for the CRM crate.
 ///
-/// Creates the `contacts` table and indexes. Should be called at application
+/// Creates the `crm_contacts`, `crm_matters`, `crm_interactions`, and
+/// `crm_contact_channels` tables with indexes. Should be called at application
 /// startup before using [`SqliteCrmStore`].
 pub async fn run_migrations(pool: &sqlx::SqlitePool) -> Result<()> {
     sqlx::migrate!("./migrations")

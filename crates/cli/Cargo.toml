@@ -67,6 +67,7 @@ moltis-agents          = { workspace = true }
 moltis-browser         = { workspace = true }
 moltis-common          = { workspace = true }
 moltis-config          = { workspace = true }
+moltis-crm             = { optional = true, workspace = true }
 moltis-cron            = { workspace = true }
 moltis-gateway         = { workspace = true }
 moltis-memory          = { workspace = true }
@@ -102,7 +103,7 @@ tempfile = { workspace = true }
 [features]
 agent = ["moltis-gateway/agent", "moltis-web?/agent"]
 caldav = ["moltis-gateway/caldav"]
-crm    = ["moltis-gateway/crm"]
+crm    = ["dep:moltis-crm", "moltis-gateway/crm"]
 default = [
   "agent",
   "caldav",

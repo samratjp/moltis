@@ -68,7 +68,7 @@ async fn clear_databases() -> anyhow::Result<()> {
 
         // Order matters due to foreign key constraints.
         // Delete from child tables first.
-        let tables = [
+        let mut tables: Vec<&str> = vec![
             // Sessions/channels (depends on projects)
             "channel_sessions",
             "sessions",
@@ -86,6 +86,15 @@ async fn clear_databases() -> anyhow::Result<()> {
             // Projects (other tables depend on this)
             "projects",
         ];
+        // CRM: interactions and channels depend on contacts; interactions also depend on matters.
+        #[cfg(feature = "crm")]
+        tables.extend([
+            "crm_interactions",
+            "crm_contact_channels",
+            "crm_matters",
+            "crm_contacts",
+        ]);
+        let tables = tables;
 
         for table in tables {
             // Use raw query to avoid compile-time checks
@@ -164,6 +173,14 @@ async fn run_migrations() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::anyhow!("gateway migrations failed: {e}"))?;
     println!("  - gateway migrations complete");
+
+    #[cfg(feature = "crm")]
+    {
+        moltis_crm::run_migrations(&pool)
+            .await
+            .map_err(|e| anyhow::anyhow!("crm migrations failed: {e}"))?;
+        println!("  - crm migrations complete");
+    }
 
     pool.close().await;
 
@@ -261,6 +278,8 @@ mod tests {
         moltis_sessions::run_migrations(&pool).await.unwrap();
         moltis_cron::run_migrations(&pool).await.unwrap();
         moltis_gateway::run_migrations(&pool).await.unwrap();
+        #[cfg(feature = "crm")]
+        moltis_crm::run_migrations(&pool).await.unwrap();
 
         // Verify tables were created by querying them
         let _: (i64,) = sqlx::query_as("SELECT count(*) FROM projects")
@@ -279,6 +298,25 @@ mod tests {
             .fetch_one(&pool)
             .await
             .unwrap();
+        #[cfg(feature = "crm")]
+        {
+            let _: (i64,) = sqlx::query_as("SELECT count(*) FROM crm_contacts")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            let _: (i64,) = sqlx::query_as("SELECT count(*) FROM crm_matters")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            let _: (i64,) = sqlx::query_as("SELECT count(*) FROM crm_interactions")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            let _: (i64,) = sqlx::query_as("SELECT count(*) FROM crm_contact_channels")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        }
 
         pool.close().await;
 
@@ -322,12 +360,16 @@ mod tests {
         moltis_sessions::run_migrations(&pool).await.unwrap();
         moltis_cron::run_migrations(&pool).await.unwrap();
         moltis_gateway::run_migrations(&pool).await.unwrap();
+        #[cfg(feature = "crm")]
+        moltis_crm::run_migrations(&pool).await.unwrap();
 
         // Run again - should still work due to set_ignore_missing
         moltis_projects::run_migrations(&pool).await.unwrap();
         moltis_sessions::run_migrations(&pool).await.unwrap();
         moltis_cron::run_migrations(&pool).await.unwrap();
         moltis_gateway::run_migrations(&pool).await.unwrap();
+        #[cfg(feature = "crm")]
+        moltis_crm::run_migrations(&pool).await.unwrap();
 
         pool.close().await;
     }
