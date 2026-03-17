@@ -1244,14 +1244,14 @@ impl SystemInfoService for NoopSystemInfoService {
 ///
 /// Wraps contact, matter, interaction, and channel-identity CRUD behind the
 /// standard `ServiceResult` boundary.  The real implementation lives in the
-/// gateway (backed by [`moltis_crm::CrmStore`]); `NoopCrmService` is used
+/// gateway (backed by `moltis_crm::CrmStore`); `NoopCrmService` is used
 /// when the `crm` feature is not enabled.
 #[async_trait]
 pub trait CrmService: Send + Sync {
     // ── Contacts ──────────────────────────────────────────────────────────
 
-    /// List all contacts ordered by most-recently-updated first.
-    async fn contacts_list(&self) -> ServiceResult;
+    /// List all contacts, optionally filtered or paginated via `params`.
+    async fn contacts_list(&self, params: Value) -> ServiceResult;
 
     /// Return a single contact by ID.
     async fn contacts_get(&self, params: Value) -> ServiceResult;
@@ -1309,13 +1309,27 @@ pub trait CrmService: Send + Sync {
 
     /// Unlink a channel identity from a contact.
     async fn channels_unlink(&self, params: Value) -> ServiceResult;
+
+    // ── External-ID lookups ───────────────────────────────────────────────
+
+    /// Look up a contact by source channel and external ID.
+    ///
+    /// `params` must contain `source` and `external_id` fields.
+    /// Returns `null` (not an error) when no match is found.
+    async fn contacts_get_by_external(&self, params: Value) -> ServiceResult;
+
+    /// Look up a contact channel identity by channel type and channel-native ID.
+    ///
+    /// `params` must contain `channel_type` and `channel_id` fields.
+    /// Returns `null` (not an error) when no match is found.
+    async fn channels_get_by_external(&self, params: Value) -> ServiceResult;
 }
 
 pub struct NoopCrmService;
 
 #[async_trait]
 impl CrmService for NoopCrmService {
-    async fn contacts_list(&self) -> ServiceResult {
+    async fn contacts_list(&self, _p: Value) -> ServiceResult {
         Ok(serde_json::json!([]))
     }
 
@@ -1384,6 +1398,14 @@ impl CrmService for NoopCrmService {
     }
 
     async fn channels_unlink(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn contacts_get_by_external(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn channels_get_by_external(&self, _p: Value) -> ServiceResult {
         Err("crm not configured".into())
     }
 }

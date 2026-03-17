@@ -1241,6 +1241,7 @@ pub struct GatewayServices {
     pub provider_setup: Arc<dyn ProviderSetupService>,
     pub project: Arc<dyn ProjectService>,
     pub local_llm: Arc<dyn LocalLlmService>,
+    pub crm: Arc<dyn CrmService>,
     pub network_audit: Arc<dyn crate::network_audit::NetworkAuditService>,
     /// Optional channel registry for direct plugin access (thread context, etc.).
     pub channel_registry: Option<Arc<moltis_channels::ChannelRegistry>>,
@@ -1340,6 +1341,7 @@ impl GatewayServices {
             provider_setup: Arc::new(NoopProviderSetupService),
             project: Arc::new(NoopProjectService),
             local_llm: Arc::new(NoopLocalLlmService),
+            crm: Arc::new(NoopCrmService),
             network_audit: Arc::new(crate::network_audit::NoopNetworkAuditService),
             channel_registry: None,
             channel_outbound: None,
@@ -1449,6 +1451,7 @@ impl GatewayServices {
             provider_setup: self.provider_setup.clone(),
             project: self.project.clone(),
             local_llm: self.local_llm.clone(),
+            crm: self.crm.clone(),
             system_info,
         })
     }
