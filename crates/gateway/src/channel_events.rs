@@ -2162,7 +2162,181 @@ mod tests {
             assert_eq!(contacts[0].name, "14155550100");
         }
 
-        // 8. Repeated messages from same peer → 1 contact, 2 interactions.
+        // 8. sender_name is Some("") → treated as absent, fallback to username.
+        #[tokio::test]
+        async fn empty_sender_name_string_falls_back_to_username() {
+            let s = store();
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".into(),
+                "U999".into(),
+                Some("myusername".into()),
+                Some(String::new()), // empty string → treated as None
+            )
+            .await;
+
+            let contacts = s.list().await.unwrap();
+            assert_eq!(contacts[0].name, "myusername");
+        }
+
+        // 9. CRM store lookup fails → returns gracefully, no panic.
+        #[tokio::test]
+        async fn crm_store_error_does_not_panic() {
+            use {
+                async_trait::async_trait,
+                moltis_crm::{
+                    ContactStage, Interaction, Matter, PracticeArea, types::ContactChannel,
+                },
+            };
+
+            struct FailingCrmStore;
+
+            #[async_trait]
+            impl CrmStore for FailingCrmStore {
+                async fn list(&self) -> moltis_crm::Result<Vec<moltis_crm::Contact>> {
+                    unimplemented!()
+                }
+
+                async fn list_filtered(
+                    &self,
+                    _stage: Option<ContactStage>,
+                    _search: Option<&str>,
+                    _offset: u64,
+                    _limit: u64,
+                ) -> moltis_crm::Result<Vec<moltis_crm::Contact>> {
+                    unimplemented!()
+                }
+
+                async fn get(&self, _id: &str) -> moltis_crm::Result<Option<moltis_crm::Contact>> {
+                    unimplemented!()
+                }
+
+                async fn get_by_external(
+                    &self,
+                    _source: &str,
+                    _external_id: &str,
+                ) -> moltis_crm::Result<Option<moltis_crm::Contact>> {
+                    unimplemented!()
+                }
+
+                async fn upsert(&self, _contact: moltis_crm::Contact) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn delete(&self, _id: &str) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn list_channels_for_contact(
+                    &self,
+                    _contact_id: &str,
+                ) -> moltis_crm::Result<Vec<ContactChannel>> {
+                    unimplemented!()
+                }
+
+                async fn get_channel_by_external(
+                    &self,
+                    _channel_type: &str,
+                    _channel_id: &str,
+                ) -> moltis_crm::Result<Option<ContactChannel>> {
+                    Err(moltis_crm::Error::NotFound {
+                        id: "test-simulated-failure".into(),
+                    })
+                }
+
+                async fn upsert_channel(&self, _channel: ContactChannel) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn delete_channel(&self, _id: &str) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn list_matters(&self) -> moltis_crm::Result<Vec<Matter>> {
+                    unimplemented!()
+                }
+
+                async fn list_matters_filtered(
+                    &self,
+                    _contact_id: Option<&str>,
+                    _practice_area: Option<PracticeArea>,
+                ) -> moltis_crm::Result<Vec<Matter>> {
+                    unimplemented!()
+                }
+
+                async fn list_matters_by_contact(
+                    &self,
+                    _contact_id: &str,
+                ) -> moltis_crm::Result<Vec<Matter>> {
+                    unimplemented!()
+                }
+
+                async fn get_matter(&self, _id: &str) -> moltis_crm::Result<Option<Matter>> {
+                    unimplemented!()
+                }
+
+                async fn upsert_matter(&self, _matter: Matter) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn delete_matter(&self, _id: &str) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn list_interactions_by_contact(
+                    &self,
+                    _contact_id: &str,
+                ) -> moltis_crm::Result<Vec<Interaction>> {
+                    unimplemented!()
+                }
+
+                async fn list_interactions_by_matter(
+                    &self,
+                    _matter_id: &str,
+                ) -> moltis_crm::Result<Vec<Interaction>> {
+                    unimplemented!()
+                }
+
+                async fn get_interaction(
+                    &self,
+                    _id: &str,
+                ) -> moltis_crm::Result<Option<Interaction>> {
+                    unimplemented!()
+                }
+
+                async fn upsert_interaction(
+                    &self,
+                    _interaction: Interaction,
+                ) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn delete_interaction(&self, _id: &str) -> moltis_crm::Result<()> {
+                    unimplemented!()
+                }
+
+                async fn delete_interactions_before(
+                    &self,
+                    _cutoff_epoch_ms: i64,
+                ) -> moltis_crm::Result<u64> {
+                    unimplemented!()
+                }
+            }
+
+            // Should return without panicking even though the store fails.
+            handle_crm_inbound(
+                Arc::new(FailingCrmStore) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".into(),
+                "peer123".into(),
+                None,
+                Some("TestUser".into()),
+            )
+            .await;
+        }
+
+        // 10. Repeated messages from same peer → 1 contact, 2 interactions.
         #[tokio::test]
         async fn logs_multiple_interactions_for_same_contact() {
             let s = store();
