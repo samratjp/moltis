@@ -1,0 +1,90 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "a50114cec0cd",
+  "session_id": "37126e21-e4db-4334-908e-4c6c5f2ccfab",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T19:21:00.58748Z",
+  "branch": "feat/crm-store-queries",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/crm/src/types.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/Cargo.toml",
+    "crates/crm/src/lib.rs",
+    "crates/gateway/src/services.rs",
+    "crates/gateway/src/server.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "5c6b1903fe98",
+  "token_usage": {
+    "input_tokens": 1458,
+    "cache_creation_tokens": 177829,
+    "cache_read_tokens": 8567864,
+    "output_tokens": 31561,
+    "api_call_count": 96
+  },
+  "summary": {
+    "intent": "Investigate and implement CHA-11 (P1.4: CRM store SQLite) — extending the existing CRM crate with pagination, filtering, search, get-contact-with-channels, and wiring SqliteCrmStore into GatewayServices.",
+    "outcome": "All 5 identified gaps were closed: pagination types added, CrmStore trait extended with filtered/search/joined queries, both SqliteCrmStore and MemoryCrmStore implemented, tracing feature flag added, and SqliteCrmStore wired into GatewayServices. 70/70 tests pass, clippy and rustfmt clean, changes committed on feature branch.",
+    "learnings": {
+      "repo": [
+        "CRM crate uses Secret\u003cString\u003e (secrecy crate) for PII fields (email/phone) as a Rust-side guard only — fields are stored as plaintext in SQLite, so LIKE search works fine by calling expose_secret() at the SQL boundary.",
+        "Gateway uses a GatewayServices builder pattern (noop() + with_* methods) for wiring stores and services; CRM store follows the same pattern.",
+        "Migrations are feature-gated with #[cfg(feature = \"crm\")] and run at gateway startup in server.rs — the crm feature is enabled by default in both gateway and CLI Cargo.toml.",
+        "CLAUDE.md requires a tracing feature flag on crates that use the tracing crate; the CRM crate was missing this and needed it added.",
+        "The project uses nightly rustfmt — format must be applied with the nightly toolchain.",
+        "Clippy is run per-crate on macOS without --all-features to skip nvcc/CUDA targets."
+      ],
+      "code": [
+        {
+          "path": "crates/crm/src/store.rs",
+          "finding": "CrmStore trait had 17 CRUD methods but lacked list_contacts_filtered, list_matters_filtered, search_contacts, and get_contact_with_channels — all added in this session."
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "New filtered list methods use dynamic WHERE clause construction with optional stage/practice_area filters plus LIMIT/OFFSET pagination; search uses LIKE '%query%' on name/email/phone columns."
+        },
+        {
+          "path": "crates/crm/src/types.rs",
+          "finding": "ContactWithChannels struct added as a joined view (Contact + Vec\u003cContactChannel\u003e); no DB join — implemented as two sequential queries in SqliteCrmStore."
+        },
+        {
+          "path": "crates/gateway/src/services.rs",
+          "finding": "GatewayServices struct uses Arc\u003cdyn Trait\u003e fields with noop/with_* builder pattern; crm_store: Arc\u003cdyn CrmStore\u003e field and with_crm_store() builder added following this convention."
+        },
+        {
+          "path": "crates/gateway/src/server.rs",
+          "finding": "SqliteCrmStore instantiated inside the cfg(feature=\"crm\") block after migrations run, then passed to services.with_crm_store()."
+        }
+      ],
+      "workflow": [
+        "The autonomous agent workflow runs investigation and implementation as separate Linear state transitions (investigate → research-review → implement → implementation-review), with a persistent workpad Linear comment updated at each milestone.",
+        "Clippy caught unnecessary \u0026 borrows on Copy types in filter closures — easy fix but worth watching when writing iterator chains over enums.",
+        "Running compile checks per-crate (crm first, then gateway) before running the full test suite saved time by catching errors early in the smaller crate."
+      ]
+    },
+    "friction": [
+      "Linear API authentication required trial-and-error — the API key needed to be passed directly (not as Bearer token) before MCP tooling worked.",
+      "Several intermediate compile errors from spurious import suppression attributes and unnecessary \u0026 borrows required additional edit passes on store_sqlite.rs and store_memory.rs.",
+      "Reading large files (store_sqlite.rs, server.rs) required multiple paginated reads to locate exact insertion points for edits."
+    ],
+    "open_items": [
+      "REST/RPC API routes for CRM operations (/api/crm/* or crm.* RPC) — explicitly noted as likely out of scope for CHA-11, needs a separate issue/phase.",
+      "Cursor-based pagination (updated_at + id) deferred in favor of simpler offset/limit — acceptable for now but noted as a future scalability concern.",
+      "SQLite FTS5 full-text search deferred — LIKE-based search implemented for now; FTS5 table could be added later if performance becomes an issue.",
+      "tracing #[instrument] attributes on store methods not yet added — the tracing feature flag was added to Cargo.toml but actual instrumentation spans are still TODO."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T19:20:30.354629Z",
+    "agent_lines": 516,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 516,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-11/37126e21-e4db-4334-908e-4c6c5f2ccfab.jsonl"
+}
