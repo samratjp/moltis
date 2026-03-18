@@ -4610,7 +4610,7 @@ pub(super) fn register(reg: &mut MethodRegistry) {
                 ctx.state
                     .services
                     .crm
-                    .list_matters()
+                    .list_matters(ctx.params)
                     .await
                     .map_err(ErrorShape::from)
             })

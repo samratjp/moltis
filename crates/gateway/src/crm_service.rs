@@ -157,8 +157,50 @@ impl CrmService for LiveCrmService {
 
     // ── Matters ───────────────────────────────────────────────────────────────
 
-    async fn list_matters(&self) -> ServiceResult {
-        let matters = self.store.list_matters().await.map_err(store_err)?;
+    async fn list_matters(&self, params: Value) -> ServiceResult {
+        let has_filters = params.is_object() && params.as_object().is_some_and(|o| !o.is_empty());
+        let matters = if has_filters {
+            let contact_id = params
+                .get("contactId")
+                .and_then(|v| v.as_str())
+                .map(ToOwned::to_owned);
+            let status = params
+                .get("status")
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<MatterStatus>().map_err(ServiceError::message))
+                .transpose()?;
+            let phase = params
+                .get("phase")
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<MatterPhase>().map_err(ServiceError::message))
+                .transpose()?;
+            let practice_area = params
+                .get("practiceArea")
+                .and_then(|v| v.as_str())
+                .map(|s| s.parse::<PracticeArea>().map_err(ServiceError::message))
+                .transpose()?;
+            let search = params
+                .get("search")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(ToOwned::to_owned);
+            let offset = params.get("offset").and_then(|v| v.as_u64()).unwrap_or(0);
+            let limit = params.get("limit").and_then(|v| v.as_u64()).unwrap_or(50);
+            self.store
+                .list_matters_filtered(
+                    contact_id.as_deref(),
+                    status,
+                    phase,
+                    practice_area,
+                    search.as_deref(),
+                    offset,
+                    limit,
+                )
+                .await
+                .map_err(store_err)?
+        } else {
+            self.store.list_matters().await.map_err(store_err)?
+        };
         Ok(Value::Array(
             matters.into_iter().map(matter_to_json).collect(),
         ))

@@ -338,48 +338,68 @@ impl CrmStore for SqliteCrmStore {
 
     // ── Matters ───────────────────────────────────────────────────────────────
 
-    async fn list_matters(&self) -> Result<Vec<Matter>> {
-        let rows =
-            sqlx::query_as::<_, MatterRow>(&format!("{SELECT_MATTERS} ORDER BY updated_at DESC"))
-                .fetch_all(&self.pool)
-                .await?;
-
-        rows.into_iter().map(Matter::try_from).collect()
-    }
-
+    /// Full-featured filtered listing of matters.
+    ///
+    /// All parameters are optional and combined with AND logic:
+    ///
+    /// ```text
+    /// SELECT ... FROM crm_matters WHERE 1=1
+    ///   [AND contact_id = ?]        ← contact_id
+    ///   [AND status = ?]            ← status
+    ///   [AND phase = ?]             ← phase
+    ///   [AND practice_area = ?]     ← practice_area
+    ///   [AND (title LIKE ? OR description LIKE ?)]  ← search
+    /// ORDER BY updated_at DESC
+    /// LIMIT ? OFFSET ?
+    /// ```
     async fn list_matters_filtered(
         &self,
         contact_id: Option<&str>,
+        status: Option<MatterStatus>,
+        phase: Option<MatterPhase>,
         practice_area: Option<PracticeArea>,
+        search: Option<&str>,
+        offset: u64,
+        limit: u64,
     ) -> Result<Vec<Matter>> {
         let mut sql = format!("{SELECT_MATTERS} WHERE 1=1");
         if contact_id.is_some() {
             sql.push_str(" AND contact_id = ?");
         }
+        if status.is_some() {
+            sql.push_str(" AND status = ?");
+        }
+        if phase.is_some() {
+            sql.push_str(" AND phase = ?");
+        }
         if practice_area.is_some() {
             sql.push_str(" AND practice_area = ?");
         }
-        sql.push_str(" ORDER BY updated_at DESC");
+        if search.is_some() {
+            sql.push_str(" AND (title LIKE ? OR description LIKE ?)");
+        }
+        sql.push_str(" ORDER BY updated_at DESC LIMIT ? OFFSET ?");
 
         let mut q = sqlx::query_as::<_, MatterRow>(&sql);
         if let Some(cid) = contact_id {
             q = q.bind(cid);
         }
+        if let Some(s) = status {
+            q = q.bind(s.as_str());
+        }
+        if let Some(ph) = phase {
+            q = q.bind(ph.as_str());
+        }
         if let Some(pa) = practice_area {
             q = q.bind(pa.as_str());
         }
+        if let Some(term) = search {
+            let pattern = format!("%{term}%");
+            q = q.bind(pattern.clone()).bind(pattern);
+        }
+        q = q.bind(limit as i64).bind(offset as i64);
+
         let rows = q.fetch_all(&self.pool).await?;
-        rows.into_iter().map(Matter::try_from).collect()
-    }
-
-    async fn list_matters_by_contact(&self, contact_id: &str) -> Result<Vec<Matter>> {
-        let rows = sqlx::query_as::<_, MatterRow>(&format!(
-            "{SELECT_MATTERS} WHERE contact_id = ? ORDER BY updated_at DESC"
-        ))
-        .bind(contact_id)
-        .fetch_all(&self.pool)
-        .await?;
-
         rows.into_iter().map(Matter::try_from).collect()
     }
 
@@ -934,7 +954,7 @@ mod tests {
             .await
             .unwrap();
         let results = store
-            .list_matters_filtered(Some(&c1.id), None)
+            .list_matters_filtered(Some(&c1.id), None, None, None, None, 0, 50)
             .await
             .unwrap();
         assert_eq!(results.len(), 1);
@@ -955,7 +975,7 @@ mod tests {
             .await
             .unwrap();
         let results = store
-            .list_matters_filtered(None, Some(PracticeArea::Tax))
+            .list_matters_filtered(None, None, None, Some(PracticeArea::Tax), None, 0, 50)
             .await
             .unwrap();
         assert_eq!(results.len(), 1);
@@ -981,12 +1001,214 @@ mod tests {
             .upsert_matter(Matter::new(&c2.id, "C2-Corp", PracticeArea::Corporate))
             .await
             .unwrap();
-        // Both contact_id and practice_area filter.
+        // contact_id + practice_area combined.
         let results = store
-            .list_matters_filtered(Some(&c1.id), Some(PracticeArea::Corporate))
+            .list_matters_filtered(
+                Some(&c1.id),
+                None,
+                None,
+                Some(PracticeArea::Corporate),
+                None,
+                0,
+                50,
+            )
             .await
             .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "C1-Corp");
+    }
+
+    // ── New filter tests ──────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_status() {
+        let store = test_store().await;
+        let c = Contact::new("StatusC");
+        store.upsert(c.clone()).await.unwrap();
+        let mut m1 = Matter::new(&c.id, "Open Matter", PracticeArea::Other);
+        m1.status = MatterStatus::Open;
+        let mut m2 = Matter::new(&c.id, "Closed Matter", PracticeArea::Other);
+        m2.status = MatterStatus::Closed;
+        store.upsert_matter(m1).await.unwrap();
+        store.upsert_matter(m2).await.unwrap();
+        let results = store
+            .list_matters_filtered(None, Some(MatterStatus::Open), None, None, None, 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Open Matter");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_phase() {
+        let store = test_store().await;
+        let c = Contact::new("PhaseC");
+        store.upsert(c.clone()).await.unwrap();
+        let mut m1 = Matter::new(&c.id, "Intake Matter", PracticeArea::Other);
+        m1.phase = MatterPhase::Intake;
+        let mut m2 = Matter::new(&c.id, "Discovery Matter", PracticeArea::Other);
+        m2.phase = MatterPhase::Discovery;
+        store.upsert_matter(m1).await.unwrap();
+        store.upsert_matter(m2).await.unwrap();
+        let results = store
+            .list_matters_filtered(None, None, Some(MatterPhase::Discovery), None, None, 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Discovery Matter");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_search_title() {
+        let store = test_store().await;
+        let c = Contact::new("SearchC");
+        store.upsert(c.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(
+                &c.id,
+                "Contract Review 2026",
+                PracticeArea::Corporate,
+            ))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(
+                &c.id,
+                "Employment Dispute",
+                PracticeArea::Employment,
+            ))
+            .await
+            .unwrap();
+        let results = store
+            .list_matters_filtered(None, None, None, None, Some("contract"), 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Contract Review 2026");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_search_description() {
+        let store = test_store().await;
+        let c = Contact::new("DescSearchC");
+        store.upsert(c.clone()).await.unwrap();
+        let mut m = Matter::new(&c.id, "Tax Filing", PracticeArea::Tax);
+        m.description = Some("Quarterly federal tax return for FY2025".to_owned());
+        store.upsert_matter(m).await.unwrap();
+        store
+            .upsert_matter(Matter::new(
+                &c.id,
+                "Immigration Case",
+                PracticeArea::Immigration,
+            ))
+            .await
+            .unwrap();
+        let results = store
+            .list_matters_filtered(None, None, None, None, Some("quarterly"), 0, 50)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Tax Filing");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_pagination() {
+        let store = test_store().await;
+        let c = Contact::new("PageC");
+        store.upsert(c.clone()).await.unwrap();
+        for i in 0..5 {
+            store
+                .upsert_matter(Matter::new(&c.id, format!("M{i}"), PracticeArea::Other))
+                .await
+                .unwrap();
+        }
+        let page1 = store
+            .list_matters_filtered(None, None, None, None, None, 0, 2)
+            .await
+            .unwrap();
+        let page2 = store
+            .list_matters_filtered(None, None, None, None, None, 2, 2)
+            .await
+            .unwrap();
+        assert_eq!(page1.len(), 2);
+        assert_eq!(page2.len(), 2);
+        let ids1: std::collections::HashSet<_> = page1.iter().map(|m| &m.id).collect();
+        let ids2: std::collections::HashSet<_> = page2.iter().map(|m| &m.id).collect();
+        assert!(ids1.is_disjoint(&ids2));
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_offset_beyond_total_returns_empty() {
+        let store = test_store().await;
+        let c = Contact::new("OffsetC");
+        store.upsert(c.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "Only Matter", PracticeArea::Other))
+            .await
+            .unwrap();
+        let results = store
+            .list_matters_filtered(None, None, None, None, None, 100, 50)
+            .await
+            .unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_all_combined() {
+        let store = test_store().await;
+        let c1 = Contact::new("CombinedC1");
+        let c2 = Contact::new("CombinedC2");
+        store.upsert(c1.clone()).await.unwrap();
+        store.upsert(c2.clone()).await.unwrap();
+        // This matter matches all filters.
+        let mut target = Matter::new(&c1.id, "Contract Negotiation", PracticeArea::Corporate);
+        target.status = MatterStatus::Open;
+        target.phase = MatterPhase::Negotiation;
+        target.description = Some("Active deal negotiation".to_owned());
+        store.upsert_matter(target).await.unwrap();
+        // These should not match.
+        store
+            .upsert_matter(Matter::new(
+                &c2.id,
+                "Other Corporate",
+                PracticeArea::Corporate,
+            ))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c1.id, "Tax Matter", PracticeArea::Tax))
+            .await
+            .unwrap();
+        let results = store
+            .list_matters_filtered(
+                Some(&c1.id),
+                Some(MatterStatus::Open),
+                Some(MatterPhase::Negotiation),
+                Some(PracticeArea::Corporate),
+                Some("contract"),
+                0,
+                50,
+            )
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Contract Negotiation");
+    }
+
+    #[tokio::test]
+    async fn list_matters_default_returns_all() {
+        let store = test_store().await;
+        let c = Contact::new("AllC");
+        store.upsert(c.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "M1", PracticeArea::Other))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "M2", PracticeArea::Other))
+            .await
+            .unwrap();
+        let all = store.list_matters().await.unwrap();
+        assert_eq!(all.len(), 2);
     }
 }
