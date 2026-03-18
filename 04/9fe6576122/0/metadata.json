@@ -1,0 +1,109 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "049fe6576122",
+  "session_id": "b3717b91-fa4a-4cf9-a9e4-4b67269fab4f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T04:39:26.875812Z",
+  "branch": "feat/cha-17-crm-matters-rpc",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "crates/crm/migrations/20260318000000_matters_filter_indexes.sql",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "fdb62ba92a8a",
+  "token_usage": {
+    "input_tokens": 628,
+    "cache_creation_tokens": 774192,
+    "cache_read_tokens": 11821020,
+    "output_tokens": 51335,
+    "api_call_count": 128
+  },
+  "summary": {
+    "intent": "Implement production-usable filtering, pagination, and search for the crm.matters.* RPC methods in a Rust legal CRM system (CHA-17), extending the existing basic CRUD skeleton to match the patterns established by crm.contacts.*",
+    "outcome": "Successfully implemented full-stack filtering/pagination/search for crm.matters.list across 6 files: extended store trait with 7-arg list_matters_filtered, updated SQLite and memory impls, changed service trait signature, updated LiveCrmService to parse JSON filter params, and updated the RPC handler. All 496 tests pass, clippy clean, rustfmt clean.",
+    "learnings": {
+      "repo": [
+        "The codebase uses a dynamic SQL string concatenation pattern for filtered queries (not a query builder) — all values are bound via ? params so there's no SQL injection risk, but adding filters requires careful string surgery",
+        "The CrmStore trait uses async_trait with default implementations to provide DRY delegation (e.g., list_matters delegates to list_matters_filtered with max limit)",
+        "The RPC dispatch chain is: ws.rs → methods/mod.rs (authorize) → methods/services.rs (register handlers) → CrmService trait → LiveCrmService → CrmStore → SqliteCrmStore",
+        "secrecy::Secret\u003cString\u003e is used for PII fields in CRM types",
+        "The project uses a pinned nightly toolchain (nightly-2025-11-30) for rustfmt — must use cargo +nightly-2025-11-30 fmt",
+        "sqlx migrations use the migrate! macro; new migration files follow pattern YYYYMMDDHHMMSS_description.sql",
+        "crm_matters table had indexes on updated_at, contact_id, status but was missing phase and practice_area indexes",
+        "The crm.contacts.list RPC also ignores filter params and calls unfiltered list — same gap exists there but was explicitly deferred",
+        "Linear API uses GraphQL; the issues(filter: { identifier: }) endpoint is deprecated — use searchIssues(term: 'CHA-17', first: 3) instead",
+        "The context-mode MCP sandbox does not inherit shell environment variables like LINEAR_API_KEY — must use $(printenv LINEAR_API_KEY) inline"
+      ],
+      "code": [
+        {
+          "path": "crates/crm/src/store.rs",
+          "finding": "list_matters_filtered extended from 2 args (contact_id, practice_area) to 7 args (contact_id, status, phase, practice_area, search, offset, limit); list_matters() and list_matters_by_contact() now have default trait impls delegating to list_matters_filtered"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "line": 341,
+          "finding": "Old list_matters() at line 341 and list_matters_by_contact() at line 375 were removed; now covered by trait defaults; list_matters_filtered does dynamic SQL with WHERE 1=1 pattern"
+        },
+        {
+          "path": "crates/crm/src/store_memory.rs",
+          "finding": "Memory store had duplicate import of MatterStatus in test module causing clippy unused_import warning — fixed by removing inline use statement"
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "finding": "LiveCrmService::list_matters signature changed from () to (params: Value); null/empty params route to list_matters() for backward compat, any filter key routes to list_matters_filtered"
+        },
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4607,
+          "end_line": 4617,
+          "finding": "crm.matters.list handler updated to pass ctx.params to crm.list_matters(ctx.params)"
+        },
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "line": 1249,
+          "finding": "CrmService trait list_matters() changed to list_matters(params: Value) to match all other CRM list methods; NoopCrmService updated accordingly"
+        }
+      ],
+      "workflow": [
+        "The Stokowski autonomous agent pipeline runs: ceo-review → eng-review → implement, each as separate context sessions with Linear as the coordination mechanism",
+        "Linear workpad comments are the primary artifact for cross-session state — if the comment fails to post, subsequent pipeline stages have no context",
+        "Running cargo check on a CSS file error (style.css) is pre-existing noise unrelated to Rust changes — safe to ignore",
+        "The BIG CHANGE classification (6 files, 0 new classes) still fits within a single PR when following an established pattern",
+        "TodoWrite tool was used extensively to track multi-file implementation progress across the context-limited session"
+      ]
+    },
+    "friction": [
+      "Linear comment failed to post in eng-review Run 1 (silent failure), causing user confusion and requiring a Run 2 to diagnose and fix",
+      "Linear GraphQL API issues endpoint is deprecated — took multiple trial-and-error attempts to find the correct searchIssues query",
+      "context-mode MCP sandbox doesn't inherit shell env vars, requiring workaround with $(printenv LINEAR_API_KEY) inline",
+      "Session ran out of context mid-implementation (store_memory.rs edits in progress) requiring compaction and resumption",
+      "CEO review session got stuck calling AskUserQuestion in a headless/autonomous context where no human input is expected",
+      "The eng-review skill was invoked 3 times for the same run due to orchestration retry logic"
+    ],
+    "open_items": [
+      "crm.contacts.list has the same filtering gap — also calls unfiltered list_contacts() ignoring params; explicitly deferred as separate issue",
+      "Status transition validation (prevent archived → open without explicit override) — deferred",
+      "crm.matters.stats aggregate endpoint (count by status/practice_area) — deferred",
+      "crm.matters.get_with_interactions composite query — deferred",
+      "Sort parameter (sortBy/sortOrder) for matter listing — deferred",
+      "FTS5 full-text search for matters (current LIKE-based search acceptable at expected volumes) — deferred",
+      "UUID validation on IDs in parse_matter — pre-existing gap across all CRM entity parsers, deferred for consistency",
+      "Duplicate now_ms() function in crates/crm/src/types.rs and crates/gateway/src/crm_service.rs — minor DRY violation, deferred",
+      "PR was staged and committed but transcript ends before gh pr create — PR may not have been created and linked to Linear"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T04:38:49.173894Z",
+    "agent_lines": 351,
+    "human_added": 134,
+    "human_modified": 11,
+    "human_removed": 0,
+    "total_committed": 496,
+    "agent_percentage": 70.76612903225806
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-17/b3717b91-fa4a-4cf9-a9e4-4b67269fab4f.jsonl"
+}
