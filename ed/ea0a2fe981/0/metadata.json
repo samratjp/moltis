@@ -1,0 +1,90 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "edea0a2fe981",
+  "session_id": "95cc6390-f70d-4f95-803e-b0c8a7c7648e",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T15:03:54.657994Z",
+  "branch": "CHA-8-crm-crate-scaffold",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/crm/Cargo.toml",
+    "crates/crm/src/error.rs",
+    "crates/crm/src/types.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/lib.rs",
+    "crates/crm/migrations/20260317000000_init.sql",
+    "Cargo.toml",
+    "crates/gateway/Cargo.toml",
+    "crates/gateway/src/server.rs",
+    "crates/cli/Cargo.toml"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "cc6b05fde5f9",
+  "token_usage": {
+    "input_tokens": 364,
+    "cache_creation_tokens": 227842,
+    "cache_read_tokens": 7482835,
+    "output_tokens": 28411,
+    "api_call_count": 105
+  },
+  "summary": {
+    "intent": "Investigate and implement a new `moltis-crm` crate scaffold (CHA-8) in a Rust workspace, following established crate patterns for CRM domain functionality.",
+    "outcome": "Successfully created the full `crates/crm/` scaffold with 8 new files and 4 modified workspace integration files, passing all quality checks (cargo check, 18/18 tests, clippy, nightly rustfmt), and committed to a feature branch ready for PR.",
+    "learnings": {
+      "repo": [
+        "Standard crate scaffold pattern: lib.rs, error.rs, types.rs, store.rs (trait), store_sqlite.rs, store_memory.rs, migrations/ — derived from moltis-projects as the canonical reference",
+        "SQLite store implementations use `sqlx::query_as::\u003c_, Row\u003e` and `sqlx::query` (non-macro) — not `sqlx::query!` macro — to avoid requiring offline query cache files",
+        "Workspace lint `unwrap_used = \"deny\"` applies globally; test modules must explicitly allow it with `#[allow(clippy::unwrap_used, clippy::expect_used)]`",
+        "New crates must be added to both `members` and `default-members` in root Cargo.toml, plus workspace `[dependencies]`",
+        "Gateway features are optional dependencies feature-gated; CLI enables them via `default` feature list forwarding gateway features",
+        "Migration calls are added to `gateway/src/server.rs` wrapped in `#[cfg(feature = \"crm\")]` blocks alongside existing migration calls",
+        "Nightly rustfmt is used (not stable) — requires `cargo +nightly fmt` for formatting"
+      ],
+      "code": [
+        {
+          "path": "crates/projects/src/store.rs",
+          "finding": "Reference implementation for SQLite store pattern — uses query_as::\u003c_, Row\u003e with manual FromRow, not query! macro"
+        },
+        {
+          "path": "crates/gateway/src/server.rs",
+          "finding": "Migration calls are feature-gated with #[cfg(feature = \"...\")]; new crates append their run_migrations() call here"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "Had to rewrite from sqlx::query! macro to sqlx::query_as::\u003c_, Row\u003e after initial compile failure due to missing offline query cache"
+        }
+      ],
+      "workflow": [
+        "Linear API requires GraphQL calls; LINEAR_API_KEY env var was not available in the initial sandbox context and had to be retrieved via MCP context-mode plugin",
+        "MCP ctx_batch_execute can time out on large batches; falling back to targeted individual reads is more reliable",
+        "Running `cargo check` on the individual crate first (not the whole workspace) speeds up the feedback loop during scaffolding",
+        "Background bash tasks via run_in_background allow gateway compile checks to run in parallel with other work"
+      ]
+    },
+    "friction": [
+      "LINEAR_API_KEY was not available as an environment variable in the sandbox — required multiple attempts and workarounds via MCP context-mode plugin to post Linear comments",
+      "MCP ctx_batch_execute timed out on the first large batch read, requiring a fallback to sequential targeted reads",
+      "Initial store_sqlite.rs used sqlx::query! macros which fail without an offline query cache — had to rewrite to use non-macro query_as::\u003c_, Row\u003e pattern after compile failure",
+      "Clippy unwrap_used lint fired on test code, requiring a second pass to add allow attributes to all test modules"
+    ],
+    "open_items": [
+      "Typed `ChannelType` reference for Contact.source field deferred — currently string-based",
+      "Tags, notes, and interaction history for Contact explicitly excluded from P1.1 — deferred to subsequent phases",
+      "No CRM planning docs exist in plans/ — domain model decisions are intentionally minimal pending further design",
+      "Gateway and CLI feature wiring is in place but no actual CRM API routes or handlers were created — scaffold only",
+      "PR creation was not captured in the transcript — may still need to be opened against the feature branch"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T15:03:27.975313Z",
+    "agent_lines": 594,
+    "human_added": 17,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 611,
+    "agent_percentage": 97.21767594108019
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-8/95cc6390-f70d-4f95-803e-b0c8a7c7648e.jsonl"
+}

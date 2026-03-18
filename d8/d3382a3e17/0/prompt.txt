@@ -1,0 +1,60 @@
+<task-notification>
+<task-id>bd3yh4gak</task-id>
+<tool-use-id>toolu_011CVjoMS8Bbsbf4vh3q5mjj</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-penso--superset-worktrees-moltis-installation-feedback/tasks/bd3yh4gak.output</output-file>
+<status>completed</status>
+<summary>Background command "Verify compilation" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-penso--superset-worktrees-moltis-installation-feedback/tasks/bd3yh4gak.output
+
+---
+
+PASS [   2.366s] moltis-auth credential_store::tests::test_credential_store_password
+────────────
+     Summary [   7.815s] 645/3680 tests run: 643 passed, 2 failed, 0 skipped
+  TRY 3 FAIL [   0.015s] moltis-chat tests::models_without_priority_prefer_subscription_providers
+──── TRY 3 STDOUT:       moltis-chat tests::models_without_priority_prefer_subscription_providers
+
+running 1 test
+test tests::models_without_priority_prefer_subscription_providers ... FAILED
+
+failures:
+
+failures:
+    tests::models_without_priority_prefer_subscription_providers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 142 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-chat tests::models_without_priority_prefer_subscription_providers
+
+thread 'tests::models_without_priority_prefer_subscription_providers' (25015882) panicked at crates/chat/src/lib.rs:10012:9:
+assertion `left == right` failed
+  left: "anthropic::claude-sonnet-4-5-20250929"
+ right: "openai-codex::gpt-5.2"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+  TRY 3 FAIL [   0.013s] moltis-chat tests::priority_models_pin_raw_model_ids_first
+──── TRY 3 STDOUT:       moltis-chat tests::priority_models_pin_raw_model_ids_first
+
+running 1 test
+test tests::priority_models_pin_raw_model_ids_first ... FAILED
+
+failures:
+
+failures:
+    tests::priority_models_pin_raw_model_ids_first
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 142 filtered out; finished in 0.00s
+
+──── TRY 3 STDERR:       moltis-chat tests::priority_models_pin_raw_model_ids_first
+
+thread 'tests::priority_models_pin_raw_model_ids_first' (25015893) panicked at crates/chat/src/lib.rs:9955:9:
+assertion `left == right` failed
+  left: "anthropic::claude-opus-4-5"
+ right: "openai-codex::gpt-5.2"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+warning: 3035/3680 tests were not run due to test failure (run with --no-fail-fast to run all tests, or run with --max-fail)
+error: test run failed
+[local/test] failed in 169s
+~/.s/w/m/installation-feedback installation-feedback ❯

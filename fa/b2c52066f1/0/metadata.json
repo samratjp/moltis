@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "fab2c52066f1",
+  "session_id": "41cda726-51e1-4a6b-8ce7-2682c2bec6fc",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T16:32:46.758153Z",
+  "branch": "docker-socket-documentation",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "docs/src/docker.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "a3d7b0c7b78b",
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 37430,
+    "cache_read_tokens": 374550,
+    "output_tokens": 121,
+    "api_call_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-10T16:32:46.277122Z",
+    "agent_lines": 10,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 10,
+    "agent_percentage": 100
+  }
+}

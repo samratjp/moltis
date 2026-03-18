@@ -1,0 +1,41 @@
+Reading Discord I got:
+
+Hey, I just upgraded an instance to moltis from openclaw and I'm struggling to setup the telegram bot, I wanted to use this config :
+[channels.telegram.bot]
+token = "tokentelegram"
+allowed_users = [ids_interger, ...]
+dm_policy = "allowlist"
+
+But I have to approve the sender for every new session in the webui, is that how it's supposed to work ? Is there a way to pair a user to the bot indefinitely ? I tried with the name of the user, without the dm_policy and a few different things and now I'm a bit lost 
+
+
+My bot told me this:
+The correct config
+
+TOML[channels.telegram.my-bot]
+token = "tokentelegram"
+dm_policy = "allowlist"
+allowlist = ["123456789", "987654321"]   # Telegram user IDs as STRINGS
+
+Key differences from what they tried:
+allowlist not allowed_users
+Values are strings, not integers (the allowlist is Vec<String>, matching is case-insensitive and supports globs)
+Can use either numeric user IDs or usernames (both are checked in check_dm_access)
+
+(Just clone the moltis repo to your local machine, ask moltis to search in the source code and find the answre) 
+
+
+Thank you it's now working 😀
+[05:47]anatole: I was working from that doc maybe that's obselete 
+[channels.telegram.my-bot]
+token = "123456:ABC..."
+allowed_users = [123456789] # Telegram user IDs allowed to chat
+ 
+[05:48]anatole: Or if it's possible to add that values are strings for boobs like me
+[06:01]lijunle: Honestly, the doc is kind of outdated. I ask my claw to directly search for source code and use that as the source of truth. I feel the repo needs a doc refresh. @pen.so 
+
+Can you do a documentation refresh on this part and everything else?
+
+---
+
+commit and push, add something in CLAUDE.md and AGENTS.md about always making sure documentation is up to date when adding or changing features.

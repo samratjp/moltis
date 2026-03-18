@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "815cec2cbf55",
+  "strategy": "manual-commit",
+  "branch": "CHA-6-install-gstack",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".gitignore"
+  ],
+  "sessions": [
+    {
+      "metadata": "/81/5cec2cbf55/0/metadata.json",
+      "transcript": "/81/5cec2cbf55/0/full.jsonl",
+      "context": "/81/5cec2cbf55/0/context.md",
+      "content_hash": "/81/5cec2cbf55/0/content_hash.txt",
+      "prompt": "/81/5cec2cbf55/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 6672,
+    "cache_read_tokens": 602037,
+    "output_tokens": 2411,
+    "api_call_count": 10
+  }
+}
