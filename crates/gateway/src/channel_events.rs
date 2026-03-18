@@ -2166,14 +2166,6 @@ mod tests {
         #[tokio::test]
         async fn logs_multiple_interactions_for_same_contact() {
             let s = store();
-            let args = (
-                Arc::clone(&s) as Arc<dyn CrmStore>,
-                crm_config(true, true),
-                "telegram".to_string(),
-                "555".to_string(),
-                None::<String>,
-                Some("Carol".to_string()),
-            );
             handle_crm_inbound(
                 Arc::clone(&s) as Arc<dyn CrmStore>,
                 crm_config(true, true),
@@ -2183,7 +2175,6 @@ mod tests {
                 Some("Carol".into()),
             )
             .await;
-            drop(args);
             handle_crm_inbound(
                 Arc::clone(&s) as Arc<dyn CrmStore>,
                 crm_config(true, true),
