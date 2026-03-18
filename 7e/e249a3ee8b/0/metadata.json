@@ -1,0 +1,108 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7ee249a3ee8b",
+  "session_id": "b2c6dac3-00d2-4f42-9b51-119d21e8eb25",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T16:04:05.222989Z",
+  "branch": "CHA-19-web-ui-crm-tab",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "3d888206221d",
+  "transcript_identifier_at_start": "32c9df18-7d8b-4be5-845d-ba335a465f8a",
+  "token_usage": {
+    "input_tokens": 426,
+    "cache_creation_tokens": 854650,
+    "cache_read_tokens": 49955142,
+    "output_tokens": 96735,
+    "api_call_count": 279
+  },
+  "summary": {
+    "intent": "Wire Stokowski's state machine transitions to GStack Claude plugin skills (plan-ceo-review, review, qa, ship, etc.) so that each pipeline stage triggers the appropriate GStack skill, and make this reusable across all projects via an 'extends: gstack' preset.",
+    "outcome": "Implemented full GStack preset integration in Stokowski: added skill/skip/extends fields to StateConfig, created gstack.yaml preset with 16-state pipeline, added skill-aware runner system prompts with interactive/autonomous modes, created per-gate Linear states for visibility, fixed card flow through pipeline stages, and resolved merge conflicts on CHA-17/CHA-18/CHA-19 branches.",
+    "learnings": {
+      "repo": [
+        "Stokowski is at /Users/samjp/Code/stokowski (not 'stowoksi' as initially mistyped), with workspaces at /Users/samjp/Code/stokowski-workspaces/",
+        "GStack skills are at ~/.claude/skills/gstack/ globally and .claude/skills/gstack/ per-repo; require ./setup to build binary",
+        "GStack preamble (update check, session tracking, contributor mode) runs on every skill invocation and is unnecessary overhead in headless Stokowski runs",
+        "moltis is a Rust workspace requiring full recompilation even in dev mode (cargo run = cargo build + execute)",
+        "All CHA-15 through CHA-19 branches had merge conflicts in crates/gateway/src/crm_service.rs because they were all based on pre-CHA-15 main; the pattern was old unfiltered signatures vs. new filtered signatures",
+        "Linear 'Human Review' was a catch-all gate state — needed per-gate states (CEO Review — Pending, Eng Review — Pending, etc.) for pipeline visibility",
+        "workflow.yaml deep merge: project keys override preset keys entirely for scalar/list values; per-state hooks also fully override rather than merge"
+      ],
+      "code": [
+        {
+          "path": "stokowski/stokowski/config.py",
+          "finding": "Added skill (str), skip (bool), skill_mode ('interactive'|'autonomous') to StateConfig; added extends to ServiceConfig; added _deep_merge(), _load_preset(), _apply_skips(), _resolve_skip_target() functions; updated validate_config() to allow agent states with skill alone (no prompt required)"
+        },
+        {
+          "path": "stokowski/stokowski/runner.py",
+          "finding": "skill_mode='interactive' keeps AskUserQuestion enabled so user stays in loop; skill_mode='autonomous' instructs Claude to auto-pick options and never block; Skill tool must be explicitly added to allowedTools when a state has a skill set"
+        },
+        {
+          "path": "stokowski/stokowski/orchestrator.py",
+          "line": 434,
+          "finding": "_transition() was hardcoding linear_states.active ('In Progress') for all transitions; fixed to use target state's own linear_state field so cards flow through correct columns"
+        },
+        {
+          "path": "stokowski/stokowski/orchestrator.py",
+          "finding": "_resolve_current_state() was returning cached state without checking Linear column; fix: check Linear column first on every call and override cache if user manually moved the card"
+        },
+        {
+          "path": "stokowski/stokowski/orchestrator.py",
+          "finding": "_enter_gate() was hardcoding linear_states.review for all gates; fixed to use gate's own linear_state; _handle_gate_responses() had same hardcoding for both approve and rework paths"
+        },
+        {
+          "path": "stokowski/stokowski/presets/gstack.yaml",
+          "finding": "Full 16-state GStack pipeline preset: ceo-review(interactive) → gate → eng-review(interactive) → gate → implement → code-review → gate → qa → gate → ship → gate → document-release → retro → done; design-review skipped for moltis (Rust backend, no frontend)"
+        },
+        {
+          "path": "stokowski/stokowski/prompt.py",
+          "finding": "Added Layer 0 skill invocation prefix when state_cfg.skill is set, prepending the skill call to the prompt"
+        }
+      ],
+      "workflow": [
+        "GStack skills are slash commands designed for interactive Claude Code sessions; integrating them into headless orchestration requires suppressing the interactive preamble while preserving the useful system audit step",
+        "Per-repo gstack setup: copy ~/.claude/skills/gstack to .claude/skills/gstack, remove .git, commit; run ./setup in after_create hook to build binary",
+        "Hook merge limitation: project-level before_run/after_run entirely replaces preset-level hooks rather than appending; safety net hooks should use separate hook types or be documented for inclusion",
+        "Rebase is the right tool for fixing merge conflicts on feature branches; gh pr view --json mergeable,mergeStateStatus gives clean merge readiness check",
+        "When multiple feature branches all touch the same file and merge sequentially, each subsequent branch needs rebasing after each merge"
+      ]
+    },
+    "friction": [
+      "Initial typo 'stowoksi' vs 'stokowski' caused confusion and wasted search time",
+      "GStack preamble runs on every skill invocation causing 'I'll run the preamble and system audit in parallel' noise for every ticket",
+      "Stokowski's _issue_current_state cache prevented Linear column overrides from taking effect — had to fix the resolution order",
+      "workflow.yaml hook merging is replace-not-append which makes it easy to accidentally lose preset hooks when a project defines its own",
+      "The git push said 'Everything up-to-date' for CHA-15 but the branch had never been pushed — confusing because git reported success when the branch was already on remote from a previous push",
+      "Cargo rebuild triggered on branch switch even for branches with similar code; large Rust workspace means ~minutes of compile time",
+      "Stale conflict marker left in crm_service.rs after rebase edit didn't fully apply — git accepted the rebase commit with the marker in the file",
+      "Background task notifications fired 'completed' while cargo was still actively compiling"
+    ],
+    "open_items": [
+      "CHA-19 (web UI CRM tab) branch rebased and conflict-fixed but not reviewed, merged, or running — user was trying to run it locally when session ended",
+      "PR #14 (CHA-17) was ready to merge but user never confirmed — still open",
+      "PR #13 (CHA-16) was rebased and ready — user never confirmed merge",
+      "PR #12 (CHA-18) was rebased and ready — user never confirmed merge",
+      "gstack files copied to moltis repo but not committed to git",
+      "moltis workflow.yaml updated to extends:gstack but changes not committed",
+      "Consider making hook merging append-by-default rather than replace to prevent accidentally dropping preset hooks",
+      "setup-browser-cookies skill not mapped to any Stokowski state — needs a setup step or one-time workflow integration",
+      "qa-only and plan-design-review (report-only variants) not exposed as config toggles",
+      "/retro state has no gate — user has no opportunity to review the retrospective before it auto-completes",
+      "CHA-31 card flow issue was fixed in code but not verified working after restart"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T16:03:17.277007Z",
+    "agent_lines": 0,
+    "human_added": 39498,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 39498,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-moltis/b2c6dac3-00d2-4f42-9b51-119d21e8eb25.jsonl"
+}
