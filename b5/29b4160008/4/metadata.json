@@ -1,0 +1,65 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b529b4160008",
+  "session_id": "e7a94047-913c-466c-9309-eab5f582b51d",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T05:48:34.16986Z",
+  "branch": "CHA-16-rpc-crm-contacts",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plans/2026-03-17-ceo-review-crm-contacts-rpc.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "eb34833d114f",
+  "token_usage": {
+    "input_tokens": 25,
+    "cache_creation_tokens": 51462,
+    "cache_read_tokens": 496419,
+    "output_tokens": 3898,
+    "api_call_count": 14
+  },
+  "summary": {
+    "intent": "Ship PR #13 for CHA-16 by running the /ship skill, which performs pre-landing checks, merges main into the feature branch, and pushes the final state.",
+    "outcome": "The ship pipeline completed successfully: all 498 tests passed, pre-landing review was clean, the CEO review plan doc was committed, and the branch was pushed to the open PR #13.",
+    "learnings": {
+      "repo": [
+        "The project uses git-cliff for CHANGELOG generation — no manual CHANGELOG entries needed.",
+        "Versioning uses date-based scheme with prepare-release.sh — no VERSION file to update.",
+        "The store layer (CrmStore) already had list_filtered, get_by_external, and get_with_channels fully implemented; the RPC layer was purely wiring with zero new persistence code.",
+        "moltis-web has a pre-existing unrelated CSS asset error that does not affect gateway or service-traits compilation.",
+        "CEO review artifacts are saved under plans/ with date-prefixed filenames (e.g., plans/2026-03-17-ceo-review-crm-contacts-rpc.md)."
+      ],
+      "code": [
+        {
+          "path": "plans/2026-03-17-ceo-review-crm-contacts-rpc.md",
+          "finding": "CEO review plan doc was untracked and needed an explicit commit before push; it was not auto-staged by the ship pipeline."
+        }
+      ],
+      "workflow": [
+        "The /ship skill runs a fixed pipeline: gstack preamble → detect base branch → pre-flight checks → merge main → review checklist → commit stragglers → push.",
+        "On rework runs, the skill checks for an existing branch and open PR rather than creating new ones.",
+        "Pre-landing review reads from ~/.claude/skills/review/checklist.md and uses ctx_batch_execute for parallel context reads.",
+        "Total test suite is 498 tests; scoped CRM tests (28) are run with cargo test -p moltis-gateway -- crm."
+      ]
+    },
+    "friction": [
+      "No significant blockers; the only minor friction was the CEO review plan doc being untracked and requiring a separate commit step before push."
+    ],
+    "open_items": [
+      "Decision 1 deferred: crm.contacts.list with no params returns ALL contacts (unbounded). Recommended fix-later to avoid a breaking change.",
+      "Decision 2 deferred: paginated results return a bare array with no total count or hasMore field. Recommended to coordinate a response envelope across all CRM endpoints rather than adding it to contacts only.",
+      "LIKE wildcard edge case in search filtering noted as a minor gap (1 of 12 mapped edge cases).",
+      "3 pre-existing architecture warnings in the gateway layer were noted but not addressed (out of scope for this PR)."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T05:48:18.947643Z",
+    "agent_lines": 541,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 541,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-16/e7a94047-913c-466c-9309-eab5f582b51d.jsonl"
+}

@@ -1,0 +1,104 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "cbfd7c305781",
+  "session_id": "b15749d3-12ff-4fb2-a373-f1fc8070d47f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T05:13:11.939198Z",
+  "branch": "CHA-19-web-ui-crm-tab",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "plans/CHA-19-ceo-review-v2.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "4bb380b7624e",
+  "token_usage": {
+    "input_tokens": 107,
+    "cache_creation_tokens": 339706,
+    "cache_read_tokens": 6262406,
+    "output_tokens": 42351,
+    "api_call_count": 73
+  },
+  "summary": {
+    "intent": "Implement CHA-19 (P1.12: Web UI — CRM tab) for the moltis project — building a frontend CRM tab on top of an already-complete Rust/SQLite CRM backend, as part of an autonomous Stokowski pipeline (CEO review → eng review → implement stages).",
+    "outcome": "CEO review and engineering review stages completed and posted to Linear; implementation stage started with feature branch created and Phase 1 Rust changes to templates.rs begun (adding crm to SpaRoutes, NavCounts, GonData). The transcript ends mid-implementation before Phase 2 JS work.",
+    "learnings": {
+      "repo": [
+        "All CRM data access goes via WebSocket RPC (sendRpc()) — 14 methods already registered in gateway/src/methods/services.rs — no REST endpoints needed for the UI",
+        "The channels page (page-channels.js) is the canonical reference pattern for new feature tabs: sendRpc for all ops, signal() for state, Preact/HTM components, registerPrefix for sub-routes",
+        "Routes are injected from Rust via gon (window.__MOLTIS__) using SpaRoutes struct in templates.rs — all route paths come from the server, not hardcoded in JS",
+        "NavCounts badge IDs are defined in nav-counts.js and counts are injected via gon at page load from build_nav_counts() which uses tokio::join! for concurrent queries",
+        "i18n uses lazy-loaded namespace bundles — each feature registers its namespace in i18n.js with a dynamic import loader pointing to locales/{en,fr,zh}/*.js",
+        "Feature gating uses #[cfg(feature = \"crm\")] in gateway; web side should add crm_enabled: bool to GonData matching graphql_enabled/voice_enabled pattern",
+        "PII fields (email, phone) are Secret\u003cString\u003e in CRM types — LiveCrmService explicitly calls expose_secret() in contact_to_json() for intentional serialization to authenticated users",
+        "CRM migrations use ON CONFLICT(id) DO UPDATE (upsert pattern) and ON DELETE SET NULL for matter→contact FK (matters survive contact deletion by design)",
+        "CRM LIKE search in SqliteCrmStore.list_filtered does NOT escape % and _ wildcards — low severity since single-tenant but worth noting"
+      ],
+      "code": [
+        {
+          "path": "crates/web/src/templates.rs",
+          "line": 18,
+          "end_line": 33,
+          "finding": "SpaRoutes struct — add crm: \u0026'static str field here for gon route injection"
+        },
+        {
+          "path": "crates/web/src/templates.rs",
+          "line": 245,
+          "end_line": 253,
+          "finding": "NavCounts struct — add crm: usize field; build_nav_counts() uses tokio::join! for concurrent DB queries"
+        },
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4516,
+          "end_line": 4516,
+          "finding": "All 14 CRM RPC methods registered here: crm.contacts.list/get/upsert/delete, crm.channels.list/upsert/delete, crm.matters.list/get/upsert/delete, crm.interactions.list/record/delete"
+        },
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "line": 1249,
+          "end_line": 1249,
+          "finding": "CrmService trait + NoopCrmService default impl; GatewayServices.crm: Arc\u003cdyn CrmService\u003e"
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "finding": "LiveCrmService: contact_to_json(), matter_to_json(), interaction_to_json() all call expose_secret() on PII fields — already safe for API serialization"
+        }
+      ],
+      "workflow": [
+        "The Stokowski pipeline runs CEO review → eng review → implement as sequential autonomous agent stages, with each stage posting to Linear as a persistent workpad",
+        "The CEO review incorrectly recommended REST endpoints; the eng review caught this by examining actual code — reading the codebase before planning prevented ~15 unnecessary Rust handlers",
+        "ctx_batch_execute MCP tool failed repeatedly with relative path issues; direct Read tool calls with absolute paths were reliable — prefer Read over batch for file reading",
+        "AskUserQuestion tool calls in headless sessions are denied; the agent must make architectural decisions autonomously and document them clearly for the human gate reviewer",
+        "QA test plan artifacts are written to ~/.gstack/projects/\u003cproject\u003e/ directory for consumption by downstream /qa pipeline stages"
+      ]
+    },
+    "friction": [
+      "ctx_batch_execute MCP tool consistently failed with 'No such file or directory' when using relative paths — required falling back to individual Read tool calls with absolute paths",
+      "AskUserQuestion was denied (headless mode) mid-CEO-review during mode selection — required proceeding with autonomous decisions and documenting them for human gate reviewer",
+      "navPanel navigation is dynamically rendered in JS (not static HTML), making it unclear at CEO review time where to add the CRM nav-link — required deeper exploration to resolve",
+      "Context window exhausted mid-implementation requiring a session continuation with full state summary — lost momentum at the critical Phase 1 implementation point",
+      "Linear API key had to be accessed via Bash env var inspection since MCP tools for Linear weren't available in the sandbox"
+    ],
+    "open_items": [
+      "Phase 1 Rust changes to templates.rs are incomplete — build_nav_counts() CRM count query and GonData crm_enabled field still need to be added",
+      "Phase 2 JS implementation not started: page-crm.js (contact list, detail, CRUD modals), locales/en/fr/zh crm.js, app.js import, index.html modulepreload, nav-counts.js badge ID, i18n.js namespace",
+      "E2E Playwright tests deferred to separate PR — 13 test specs defined in eng review but not implemented",
+      "Optimistic locking for concurrent CRM updates (last-write-wins is current behavior) — P2, Size M",
+      "Matter kanban drag-and-drop view — P3, Size L, deferred from v1",
+      "Contact merge/dedup across channels — P2, Size L, future phase",
+      "Search LIKE wildcard escaping (% and _ not escaped in SqliteCrmStore.list_filtered) — P3, cosmetic",
+      "Contact count optimization: build_nav_counts loads all contacts to count them — add SELECT COUNT(*) method when perf warrants",
+      "French and Chinese CRM locale translations — locale files to be created with English fallback, proper translations separate i18n pass",
+      "PR not yet created — branch CHA-19-web-ui-crm-tab exists but implementation incomplete and PR not pushed"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T05:12:29.304807Z",
+    "agent_lines": 0,
+    "human_added": 729,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 729,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-19/b15749d3-12ff-4fb2-a373-f1fc8070d47f.jsonl"
+}
