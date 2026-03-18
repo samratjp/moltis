@@ -5,6 +5,8 @@
   "branch": "CHA-35-follow-up-cron-registration",
   "checkpoints_count": 0,
   "files_touched": [
+    "crates/config/src/validate.rs",
+    "crates/crm/src/store_sqlite.rs",
     "crates/gateway/src/lib.rs",
     "crates/gateway/src/server.rs"
   ],
@@ -15,13 +17,20 @@
       "context": "/40/e6bfcb2c8b/0/context.md",
       "content_hash": "/40/e6bfcb2c8b/0/content_hash.txt",
       "prompt": "/40/e6bfcb2c8b/0/prompt.txt"
+    },
+    {
+      "metadata": "/40/e6bfcb2c8b/1/metadata.json",
+      "transcript": "/40/e6bfcb2c8b/1/full.jsonl",
+      "context": "/40/e6bfcb2c8b/1/context.md",
+      "content_hash": "/40/e6bfcb2c8b/1/content_hash.txt",
+      "prompt": "/40/e6bfcb2c8b/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 38,
-    "cache_creation_tokens": 50773,
-    "cache_read_tokens": 1600407,
-    "output_tokens": 6879,
-    "api_call_count": 34
+    "input_tokens": 106,
+    "cache_creation_tokens": 130855,
+    "cache_read_tokens": 5280207,
+    "output_tokens": 19644,
+    "api_call_count": 98
   }
 }

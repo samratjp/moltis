@@ -1,0 +1,83 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "40e6bfcb2c8b",
+  "session_id": "3b6d1553-4ac3-425e-9fc8-9e695a897fc2",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T07:19:47.940024Z",
+  "branch": "CHA-35-follow-up-cron-registration",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/config/src/validate.rs",
+    "crates/crm/src/store_sqlite.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "4ccfc4fca638",
+  "token_usage": {
+    "input_tokens": 68,
+    "cache_creation_tokens": 80082,
+    "cache_read_tokens": 3679800,
+    "output_tokens": 12765,
+    "api_call_count": 64
+  },
+  "summary": {
+    "intent": "Implement a cron-based follow-up engine (CHA-35) that periodically queries the CRM for stale contacts and triggers an agent notification, mirroring the existing heartbeat registration pattern.",
+    "outcome": "All 7 planned files were implemented (FollowUpConfig in schema/validate/template, contacts_needing_followup in CRM store, follow_up.rs prompt builder in gateway, server.rs registration), 14 tests added and passing, clippy clean, formatted with pinned nightly, and committed.",
+    "learnings": {
+      "repo": [
+        "System cron jobs follow an idempotent upsert pattern in server.rs using a fixed ID like __heartbeat__ or __follow_up__, removed on next startup when disabled",
+        "PII fields on Contact are wrapped in Secret\u003cString\u003e; the convention is to never expose these to LLM prompts — use a StaleContactSummary projection type instead",
+        "CRM store uses a trait-based abstraction (CrmStore) with SQLite and Memory implementations; new query methods go in the trait with a default fallback impl for MemoryStore",
+        "The on_agent_turn callback in server.rs is where session-type-specific enrichment happens (like heartbeat events); follow-up prompt enrichment follows the same detect-then-enrich pattern using SessionTarget::Named",
+        "DRY extraction of system job registration helpers is intentionally deferred until a third system job appears — two instances (heartbeat + follow-up) is not enough to justify abstraction",
+        "The retention engine (retention.rs) uses a detached tokio::spawn loop rather than the CronService — this is an acknowledged anti-pattern but out of scope to change",
+        "Config defaults to disabled (follow_up.enabled = false) making it a zero-risk deploy with no migrations required"
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/server.rs",
+          "line": 4925,
+          "end_line": 5035,
+          "finding": "Heartbeat job upsert pattern — the exact template for __follow_up__ registration including idempotent add/update/remove logic"
+        },
+        {
+          "path": "crates/crm/src/types.rs",
+          "finding": "Interaction.created_at is a public field, allowing test setup to backdate interactions to simulate staleness"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "contacts_needing_followup uses a single LEFT JOIN SQL query to avoid N+1; results capped at 50 to prevent OOM on large CRM datasets"
+        }
+      ],
+      "workflow": [
+        "The autonomous agent pattern: compile-check first, then read all relevant files before writing any code, commit only after full quality suite passes",
+        "Tests T4-T6 (SQLite stale contact query) and T1-T3 (FollowUpConfig serde/defaults) were missing after initial implementation and had to be added in a follow-up pass",
+        "Using a Linear comment as a persistent workpad with milestone updates keeps context across agent runs without relying on conversation history",
+        "Pinned nightly rustfmt (not stable) is required for formatting — must use the workspace's pinned toolchain, not system default"
+      ]
+    },
+    "friction": [
+      "Tests T1-T6 were not written during the initial implementation pass and had to be discovered missing and added separately, suggesting the agent wrote feature code before test code",
+      "Multiple grep/read passes were needed to locate existing test modules in store_sqlite.rs and validate.rs before tests could be appended — the files are large with tests at the bottom",
+      "The transcript ends before showing the git push and PR creation, so it's unclear if the PR was successfully created and linked to the Linear issue"
+    ],
+    "open_items": [
+      "Stage-aware follow-up thresholds (different stale_days per contact lifecycle stage: Lead=7, Prospect=14, Active=30)",
+      "Autonomous outreach — agent drafting or sending follow-up messages directly to contacts (deferred: legal/compliance concerns)",
+      "Follow-up outcome tracking — new CRM interaction type to record that a follow-up was sent",
+      "FOLLOW_UP.md prompt file — user-customizable prompt template mirroring HEARTBEAT.md",
+      "Retention engine migration to CronService — currently a detached tokio::spawn, acknowledged anti-pattern but separate concern",
+      "Extract system_jobs.rs module — if a third system cron job is added, extract heartbeat + follow-up registration into a shared module",
+      "T14 (job updated when config changes) integration test was listed in engineering review spec but not confirmed as written in the transcript"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T07:19:16.748817Z",
+    "agent_lines": 264,
+    "human_added": 486,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 750,
+    "agent_percentage": 35.199999999999996
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-35/3b6d1553-4ac3-425e-9fc8-9e695a897fc2.jsonl"
+}
