@@ -1,0 +1,101 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b8dd272a25fd",
+  "session_id": "c1db0209-2608-4ac9-be78-bef571f42b90",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T02:52:11.306549Z",
+  "branch": "CHA-18-crm-interactions-rpc",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "b1fd04b36576",
+  "token_usage": {
+    "input_tokens": 86,
+    "cache_creation_tokens": 418963,
+    "cache_read_tokens": 3960948,
+    "output_tokens": 16132,
+    "api_call_count": 49
+  },
+  "summary": {
+    "intent": "Review and implement CHA-18 (P1.11: RPC methods crm.interactions.*) through CEO review, eng review, and implementation pipeline stages for a Rust/SQLite CRM system.",
+    "outcome": "Discovered the crm.interactions.* RPC methods were already fully implemented; added two missing RPC-level tests (list by matterId, upsert overwrite) and applied nightly rustfmt fixes, then committed and pushed a feature branch.",
+    "learnings": {
+      "repo": [
+        "The crm.interactions.* CRUD stack (list, get, upsert, delete) was fully implemented across all layers before this ticket was actioned — domain types, store trait, SQLite/memory impls, service trait, live service, RPC registration with auth scopes, and retention integration.",
+        "RPC auth scopes are centralized in crates/gateway/src/methods/mod.rs with read/write scope checks at lines 95-96 and 227-228.",
+        "SQLite FK enforcement (PRAGMA foreign_keys = ON) is not enabled by default on the connection pool — orphan contactId upserts succeed silently across all CRM entities.",
+        "The second CRM migration dropped idx_crm_interactions_created_at and replaced it with idx_crm_interactions_updated_at, leaving the retention engine's WHERE created_at \u003c ? query unindexed.",
+        "The crm_interactions schema has a dead 'metadata TEXT' column from the init migration that was never dropped and is not mapped in InteractionRow.",
+        "The project uses nightly rustfmt — cargo +nightly fmt is required; cargo fmt alone leaves pre-existing fmt issues.",
+        "RPC method registration for CRM interactions is at crates/gateway/src/methods/services.rs lines 4658-4710."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 173,
+          "end_line": 216,
+          "finding": "LiveCrmService interaction CRUD implementation — list, get, upsert, delete all implemented here."
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 564,
+          "end_line": 656,
+          "finding": "Existing interaction tests (5 tests pre-patch); two new tests added for list-by-matterId and upsert-update bringing total to 15 crm_service tests."
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 78,
+          "end_line": 78,
+          "finding": "interaction_to_json uses 'channel' as key — matches Rust struct field name, consistent with presentation layer."
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "line": 14,
+          "end_line": 14,
+          "finding": "SELECT_INTERACTIONS constant explicitly lists columns, which is why the dead 'metadata' schema column causes no runtime issues."
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "line": 138,
+          "end_line": 138,
+          "finding": "InteractionRow struct omits 'metadata' column — silently ignored because of explicit column list in SELECT."
+        }
+      ],
+      "workflow": [
+        "The Stokowski pipeline runs CEO review → eng review → implement stages sequentially via skill invocations; each stage has lifecycle context injected into the prompt.",
+        "The plan-ceo-review skill includes a 'nuclear scope challenge' step (Step 0) that checks whether the work is already done before planning any implementation.",
+        "MCP context-mode batch execute tool was used for parallel file reads but failed silently in early exploration; direct Bash ls/find was needed as fallback.",
+        "Running cargo test --package with filtered output (grep on test names) is the pattern used to verify specific test files rather than running the full suite each time.",
+        "All quality checks (type-check, fmt, clippy, tests) must pass before committing; the fmt check revealed pre-existing issues in crm_service.rs that had to be fixed as part of the commit."
+      ]
+    },
+    "friction": [
+      "MCP context-mode batch execute tool failed silently during initial codebase exploration, requiring fallback to direct Bash commands to find files.",
+      "The CEO review agent called AskUserQuestion and waited for user input despite the orchestration instructions explicitly stating 'no human in the loop — do not ask questions or wait for input'.",
+      "The implement stage's first run was interrupted mid-execution ('Continue from where you left off' was needed), suggesting a context or timeout issue.",
+      "Pre-existing rustfmt violations in crm_service.rs had to be cleaned up as part of the PR even though they predated this change, adding noise to the diff.",
+      "The implement stage prompt had empty template fields (issue title, status, labels, URL in the header section) despite those being filled in the lifecycle context block below."
+    ],
+    "open_items": [
+      "No pagination on crm.interactions.list — contacts/matters have paginated listing but interactions do not; deferred as separate issue.",
+      "No kind or date-range filter on list_interactions — can't query 'all call interactions for a contact'; deferred.",
+      "No global list_all_interactions variant (filter is mandatory); deferred.",
+      "Missing created_at index after second migration — retention engine's DELETE WHERE created_at \u003c ? runs without index; minor perf impact, deferred.",
+      "SQLite FK enforcement (PRAGMA foreign_keys = ON) not enabled — orphan interactions can be created with non-existent contactId; cross-cutting concern across all CRM entities, deferred.",
+      "Dead 'metadata TEXT' column in crm_interactions schema — cosmetic schema debt, not mapped in Rust, deferred.",
+      "No RPC-level test for invalid InteractionKind parse — bad kind string returns ServiceError but is untested at the RPC layer."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T02:51:34.77551Z",
+    "agent_lines": 123,
+    "human_added": 275,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 398,
+    "agent_percentage": 30.90452261306533
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-18/c1db0209-2608-4ac9-be78-bef571f42b90.jsonl"
+}

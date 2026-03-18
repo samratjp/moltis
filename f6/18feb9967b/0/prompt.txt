@@ -1,0 +1,147 @@
+Look at https://github.com/moltis-org/moltis/issues/376 and suggest a fix
+
+---
+
+please implement it
+
+---
+
+commit, push, create a PR
+
+---
+
+try again
+
+---
+
+try again
+
+---
+
+try again
+
+---
+
+configuration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✖ Biome exited because the configuration resulted in errors. Please fix them.
+
+
+i18n parity OK: 3 locales, 18 namespaces.
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/cli/src/node_commands.rs:157:
+             let node_config = moltis_node_host::NodeConfig {
+                 gateway_url: config.gateway_url,
+                 device_token: config.device_token,
+-                node_id: config.node_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
++                node_id: config
++                    .node_id
++                    .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                 display_name: config.display_name,
+                 platform: std::env::consts::OS.into(),
+                 caps: vec![
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/config/src/lib.rs:26:
+         load_tools_md_for_agent, load_user, memory_path, resolve_identity,
+         resolve_identity_from_config, save_config, save_identity, save_identity_for_agent,
+         save_raw_config, save_soul, save_soul_for_agent, save_user, set_config_dir, set_data_dir,
+-        set_share_dir,
+-        share_dir, soul_path, tools_path, update_config, user_global_config_dir,
++        set_share_dir, share_dir, soul_path, tools_path, update_config, user_global_config_dir,
+         user_global_config_dir_if_different, user_path,
+     },
+     schema::{
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/src/auth_middleware.rs:189:
+ fn is_public_path(path: &str) -> bool {
+     matches!(
+         path,
+-        "/health" | "/auth/callback" | "/manifest.json" | "/sw.js" | "/login" | "/setup-required" | "/ws"
++        "/health"
++            | "/auth/callback"
++            | "/manifest.json"
++            | "/sw.js"
++            | "/login"
++            | "/setup-required"
++            | "/ws"
+     ) || path.starts_with("/api/auth/")
+         || path.starts_with("/api/public/")
+         || path.starts_with("/api/channels/msteams/")
+error: expected `;`, found `assert_ne`
+   --> /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/tests/auth_middleware.rs:326:42
+    |
+326 |         .get(format!("http://{addr}/ws"))
+    |                                          ^ help: add `;` here
+327 |     assert_ne!(
+    |     --------- unexpected token
+
+[local/i18n] passed in 1s
+[local/biome] failed in 1s
+error: Recipe `format-check` failed on line 14 with exit code 1
+[local/fmt] failed in 2s
+[local/fmt] total 3s
+[local/biome] total 2s
+[local/i18n] total 2s
+One or more parallel local checks failed.
+~/.s/w/m/soul-location soul-location ❯  INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/release.yml
+No findings to report. Good job! (8 ignored, 47 suppressed)
+[local/zizmor] passed in 7s
+~/.s/w/m/soul-location soul-location ❯
+
+---
+
+~/.s/w/m/soul-location soul-location ❯ ./scripts/local-validate.sh 384
+Detected macOS without nvcc; forcing non-CUDA local validation commands (no --all-features).
+Override with LOCAL_VALIDATE_LINT_CMD / LOCAL_VALIDATE_TEST_CMD / LOCAL_VALIDATE_BUILD_CMD / LOCAL_VALIDATE_COVERAGE_CMD if needed.
+Validating PR #384 (623dd1395e995418516a14e2d7b728013469e313) in moltis-org/moltis
+Publishing commit statuses to: moltis-org/moltis
+Current CI workflow: https://github.com/moltis-org/moltis/actions/runs/22902147783
+i18n parity OK: 3 locales, 18 namespaces.
+🌈 zizmor v1.22.0
+cargo +nightly-2025-11-30 fmt --all -- --check
+ INFO audit: zizmor: 🌈 completed ./.github/actions/sign-artifacts/action.yml
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/cli/src/node_commands.rs:157:
+             let node_config = moltis_node_host::NodeConfig {
+                 gateway_url: config.gateway_url,
+                 device_token: config.device_token,
+-                node_id: config.node_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
++                node_id: config
++                    .node_id
++                    .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                 display_name: config.display_name,
+                 platform: std::env::consts::OS.into(),
+                 caps: vec![
+Diff in /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/src/auth_middleware.rs:189:
+ fn is_public_path(path: &str) -> bool {
+     matches!(
+         path,
+-        "/health" | "/auth/callback" | "/manifest.json" | "/sw.js" | "/login" | "/setup-required" | "/ws"
++        "/health"
++            | "/auth/callback"
++            | "/manifest.json"
++            | "/sw.js"
++            | "/login"
++            | "/setup-required"
++            | "/ws"
+     ) || path.starts_with("/api/auth/")
+         || path.starts_with("/api/public/")
+         || path.starts_with("/api/channels/msteams/")
+error: expected `;`, found `assert_ne`
+   --> /Users/penso/.superset/worktrees/moltis/soul-location/crates/gateway/tests/auth_middleware.rs:326:42
+    |
+326 |         .get(format!("http://{addr}/ws"))
+    |                                          ^ help: add `;` here
+327 |     assert_ne!(
+    |     --------- unexpected token
+
+[local/i18n] passed in 0s
+error: Recipe `format-check` failed on line 14 with exit code 1
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/ci.yml
+[local/fmt] failed in 2s
+[local/fmt] total 2s
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/codspeed.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/docs.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/e2e.yml
+ INFO audit: zizmor: 🌈 completed ./.github/workflows/homebrew.yml

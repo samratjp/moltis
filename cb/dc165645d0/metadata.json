@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "cbdc165645d0",
+  "strategy": "manual-commit",
+  "branch": "CHA-15-crm-gateway-integration",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "crates/gateway/src/channel_events.rs",
+    "crates/gateway/src/crm_service.rs",
+    "crates/gateway/src/lib.rs",
+    "crates/gateway/src/server.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cb/dc165645d0/0/metadata.json",
+      "transcript": "/cb/dc165645d0/0/full.jsonl",
+      "context": "/cb/dc165645d0/0/context.md",
+      "content_hash": "/cb/dc165645d0/0/content_hash.txt",
+      "prompt": "/cb/dc165645d0/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 153,
+    "cache_creation_tokens": 474203,
+    "cache_read_tokens": 9214544,
+    "output_tokens": 40726,
+    "api_call_count": 107
+  }
+}

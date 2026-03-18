@@ -1,0 +1,100 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "250e2394419e",
+  "session_id": "b3717b91-fa4a-4cf9-a9e4-4b67269fab4f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T02:39:29.430232Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plans/2026-03-17-plan-crm-matters-rpc-methods.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "c23ac60aa637",
+  "token_usage": {
+    "input_tokens": 67,
+    "cache_creation_tokens": 183436,
+    "cache_read_tokens": 3193859,
+    "output_tokens": 21152,
+    "api_call_count": 42
+  },
+  "summary": {
+    "intent": "Perform a CEO-level and engineering-level plan review for CHA-17 (P1.10: RPC methods crm.matters.*), identifying scope, architecture gaps, code quality issues, test coverage, and performance concerns before implementation begins.",
+    "outcome": "A comprehensive engineering review plan was produced and committed to the repository at plans/2026-03-17-plan-crm-matters-rpc-methods.md, documenting 14 issues across architecture, code quality, tests, and performance, along with a test plan artifact. No implementation code was written.",
+    "learnings": {
+      "repo": [
+        "The CRM stack follows a strict layered pattern: SQLite store → CrmStore trait → CrmService trait (service-traits crate) → LiveCrmService → RPC handler registration in methods/services.rs → WebSocket dispatch in ws.rs",
+        "Both crm.contacts.list and crm.matters.list call unfiltered list methods despite the store layer having richer filtered variants (list_matters_filtered, list_filtered) — a consistent gap across the CRM API surface",
+        "The store already has list_matters_filtered(contact_id, practice_area), list_matters_by_contact(contact_id), but neither is wired to the service trait or RPC layer",
+        "Contacts have much richer API patterns (list_filtered with stage/search/offset/limit, get_with_channels composite query, get_by_external lookup) that matters lack entirely",
+        "The memory crate uses FTS5 for chunk search — the pattern exists in the repo for full-text search if matters volume grows",
+        "now_ms() is duplicated in crates/crm/src/types.rs and crates/gateway/src/crm_service.rs — a known minor DRY violation",
+        "Dynamic SQL WHERE clauses are built via string concatenation with bound ? params — the established pattern, no query builder in use",
+        "DB indexes exist on crm_matters for updated_at, contact_id, and status, but NOT on phase or practice_area"
+      ],
+      "code": [
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "line": 341,
+          "end_line": 349,
+          "finding": "list_matters() and list_matters_filtered() are separate implementations; list_matters() should delegate to list_matters_filtered to eliminate duplication"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "line": 350,
+          "end_line": 374,
+          "finding": "list_matters_filtered only accepts contact_id and practice_area; missing status, phase, search, offset, limit parameters"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "line": 375,
+          "end_line": 390,
+          "finding": "list_matters_by_contact(contact_id) is redundant with list_matters_filtered(Some(contact_id), None) — candidate for deprecation"
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 286,
+          "end_line": 300,
+          "finding": "parse_matter requires id and title but doesn't validate id looks like a UUID — same gap as all other CRM entity parsers"
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 352,
+          "end_line": 354,
+          "finding": "now_ms() duplicated here and in crates/crm/src/types.rs:607"
+        }
+      ],
+      "workflow": [
+        "The autonomous agent workflow uses a Linear comment as a persistent workpad, updated at each milestone with status/decisions/next-steps",
+        "The eng-review skill produces a structured four-section review (Architecture, Code Quality, Tests, Performance) before any implementation begins",
+        "Scope challenge (Step 0) explicitly asks whether existing code already solves each sub-problem and counts files-to-touch as a complexity proxy (threshold: 8 files)",
+        "The agent writes a test plan artifact to ~/.gstack/projects/ in addition to committing the plan to the repo",
+        "context-mode MCP tool had path resolution issues during the session; direct file tools (Read, Glob, Grep) were more reliable"
+      ]
+    },
+    "friction": [
+      "context-mode MCP tool (ctx_batch_execute) failed with path issues, requiring fallback to direct Read/Glob/Grep tools",
+      "Linear issue URL is behind auth — the agent could not fetch issue details directly and had to infer requirements from code exploration alone",
+      "The CEO-review agent called AskUserQuestion (violating the no-human-in-the-loop ground rule), causing a session interruption that required manual continuation"
+    ],
+    "open_items": [
+      "now_ms() duplication between crates/crm/src/types.rs and crates/gateway/src/crm_service.rs — deferred as too minor for this PR",
+      "UUID validation in parse_matter (and all other CRM entity parsers) — deferred because fixing matters alone would be inconsistent; needs a cross-entity cleanup",
+      "crm.contacts.list has the same no-filtering gap as crm.matters.list — not in scope for CHA-17 but should be addressed for API consistency",
+      "FTS5 full-text search for matters — LIKE-based search accepted for now; FTS5 noted as future option if matter volumes grow",
+      "14 new tests identified as required (T1-T14) but not yet written — to be implemented in the coding phase",
+      "Missing DB indexes on phase and practice_area columns — requires a new migration to be written",
+      "Backward-compatibility decision for list_matters pagination defaults is unresolved: final approach is to only apply limit=50 default when any filter param is present, preserving all-records behavior for parameterless calls"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T02:38:50.384274Z",
+    "agent_lines": 275,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 275,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-17/b3717b91-fa4a-4cf9-a9e4-4b67269fab4f.jsonl"
+}
