@@ -3,7 +3,7 @@
   "checkpoint_id": "b529b4160008",
   "strategy": "manual-commit",
   "branch": "CHA-16-rpc-crm-contacts",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "plans/2026-03-17-ceo-review-crm-contacts-rpc.md"
   ],
@@ -21,13 +21,20 @@
       "context": "/b5/29b4160008/1/context.md",
       "content_hash": "/b5/29b4160008/1/content_hash.txt",
       "prompt": "/b5/29b4160008/1/prompt.txt"
+    },
+    {
+      "metadata": "/b5/29b4160008/2/metadata.json",
+      "transcript": "/b5/29b4160008/2/full.jsonl",
+      "context": "/b5/29b4160008/2/context.md",
+      "content_hash": "/b5/29b4160008/2/content_hash.txt",
+      "prompt": "/b5/29b4160008/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 126,
-    "cache_creation_tokens": 377013,
-    "cache_read_tokens": 7025340,
-    "output_tokens": 32865,
-    "api_call_count": 86
+    "input_tokens": 135,
+    "cache_creation_tokens": 381324,
+    "cache_read_tokens": 7626600,
+    "output_tokens": 36861,
+    "api_call_count": 95
   }
 }
