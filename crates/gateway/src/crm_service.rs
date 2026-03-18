@@ -202,7 +202,6 @@ impl CrmService for LiveCrmService {
 
     // ── Matters ───────────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
     async fn list_matters(&self, params: Value) -> ServiceResult {
         let has_filters = params.is_object() && params.as_object().is_some_and(|o| !o.is_empty());
         let matters = if has_filters {
