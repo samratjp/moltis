@@ -1,0 +1,84 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "40e6bfcb2c8b",
+  "session_id": "2e02d6bc-6182-4cee-a1b0-84aceb27d214",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T07:19:16.666774Z",
+  "branch": "CHA-35-follow-up-cron-registration",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/lib.rs",
+    "crates/gateway/src/server.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "2048dd9860bd",
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 50773,
+    "cache_read_tokens": 1600407,
+    "output_tokens": 6879,
+    "api_call_count": 34
+  },
+  "summary": {
+    "intent": "Implement CHA-35: cron registration for a follow-up engine that periodically queries the CRM for stale contacts and fires an agent turn to notify the user, mirroring the existing heartbeat job pattern.",
+    "outcome": "The implementation was already largely in place on the branch; the agent fixed two rustfmt formatting issues in gateway/src/lib.rs and gateway/src/server.rs, confirmed clean compilation, and was waiting on test results at the end of the session.",
+    "learnings": {
+      "repo": [
+        "Heartbeat job registration (server.rs:4925-5035) is the canonical pattern for system cron jobs — upsert with fixed ID, config-driven enable/disable.",
+        "CRM PII fields are wrapped in Secret\u003cString\u003e; follow-up prompts must use a StaleContactSummary struct (name, stage, last_interaction_date, matter_title) and never expose raw Contact objects to the LLM.",
+        "The data retention engine uses a detached tokio::spawn loop (not a cron job), which is considered an anti-pattern relative to the CronService approach.",
+        "The moltis-cron crate supports both CronSchedule::Every { every_ms } (heartbeat) and CronSchedule::Cron { expr } (calendar-aware, used for follow-up).",
+        "CRM stale contact queries must use a dedicated store method (contacts_needing_followup) with a LEFT JOIN rather than loading all contacts and filtering in Rust.",
+        "Session target detection uses SessionTarget::Named(\"follow_up\") in the on_agent_turn callback, sharing a const to avoid typos.",
+        "DRY extraction of a system job helper is intentionally deferred until a third system job appears (two instances not enough to justify abstraction)."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/server.rs",
+          "line": 4925,
+          "end_line": 5035,
+          "finding": "Heartbeat job registration block — exact pattern to mirror for follow-up job upsert."
+        },
+        {
+          "path": "crates/gateway/src/lib.rs",
+          "finding": "Required rustfmt fixes — module declaration formatting was non-conformant."
+        },
+        {
+          "path": "crates/gateway/src/server.rs",
+          "finding": "Required rustfmt fixes — follow-up registration block had formatting issues."
+        }
+      ],
+      "workflow": [
+        "cargo check was run excluding the web crate (which requires a CSS build step) to avoid spurious failures.",
+        "rustfmt --check with nightly toolchain is part of the quality gate and must pass before tests.",
+        "The agent used TaskOutput polling to retrieve async cargo check and test results rather than waiting synchronously.",
+        "Linear comments serve as a persistent workpad — engineering review decisions and CEO plan review are both stored there and read before implementation begins."
+      ]
+    },
+    "friction": [
+      "cargo check took long enough to require async polling via TaskOutput, blocking progress visibility.",
+      "rustfmt required two rounds of fixes — initial edits to lib.rs and server.rs did not pass the fmt check on the first attempt, requiring re-reading and re-editing both files.",
+      "Test results were not yet available at session end — the session ended while waiting on TaskOutput for the test run."
+    ],
+    "open_items": [
+      "Stage-aware follow-up thresholds (per-stage stale_days config) — deferred to a future PR.",
+      "Autonomous outreach capability — deferred pending product/legal decision.",
+      "Follow-up outcome tracking (new CRM interaction types) — deferred.",
+      "FOLLOW_UP.md prompt file (mirroring HEARTBEAT.md) — nice-to-have, not implemented.",
+      "Retention engine migration from tokio::spawn to CronService — out of scope, separate concern.",
+      "Extraction of a register_system_job() helper in server.rs — deferred until a third system job is added.",
+      "Potential future system_jobs.rs module extraction as more system cron jobs accumulate in server.rs startup block.",
+      "Test results were not confirmed at session end — test suite pass/fail status unknown."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T07:18:48.86812Z",
+    "agent_lines": 169,
+    "human_added": 581,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 750,
+    "agent_percentage": 22.53333333333333
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-35/2e02d6bc-6182-4cee-a1b0-84aceb27d214.jsonl"
+}
