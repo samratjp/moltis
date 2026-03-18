@@ -1,0 +1,56 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "979e6644c8df",
+  "session_id": "c1db0209-2608-4ac9-be78-bef571f42b90",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T02:53:09.255823Z",
+  "branch": "CHA-18-crm-interactions-rpc",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/lib.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "b1fd04b36576",
+  "checkpoint_transcript_start": 209,
+  "transcript_lines_at_start": 209,
+  "token_usage": {
+    "input_tokens": 5,
+    "cache_creation_tokens": 1706,
+    "cache_read_tokens": 625571,
+    "output_tokens": 952,
+    "api_call_count": 5
+  },
+  "summary": {
+    "intent": "Push a feature branch and open a GitHub pull request for review.",
+    "outcome": "Feature branch was pushed, PR was created, and an additional commit was made to fix a module ordering change introduced by the nightly formatter in lib.rs.",
+    "learnings": {
+      "repo": [
+        "A nightly fmt job runs automatically and can reorder module declarations in lib.rs, producing unstaged changes that must be committed separately."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/lib.rs",
+          "finding": "Module ordering in this file is governed by the nightly formatter; manual ordering will be overwritten."
+        }
+      ],
+      "workflow": [
+        "Always check working tree state after a nightly fmt run before pushing, as automated formatting can introduce additional diffs.",
+        "Formatter-only changes should be committed and pushed as a follow-up to keep PR diffs clean."
+      ]
+    },
+    "friction": [
+      "Nightly fmt silently modified lib.rs after the initial push, requiring a discovery step and an extra commit/push cycle."
+    ],
+    "open_items": []
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T02:52:58.606233Z",
+    "agent_lines": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-18/c1db0209-2608-4ac9-be78-bef571f42b90.jsonl"
+}

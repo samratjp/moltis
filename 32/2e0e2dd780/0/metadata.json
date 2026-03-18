@@ -1,0 +1,83 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "322e0e2dd780",
+  "session_id": "247aa678-717c-4710-8cb4-d43fe2ba288f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T16:58:41.024408Z",
+  "branch": "cha-9-crm-types",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "Cargo.lock",
+    "crates/crm/Cargo.toml",
+    "crates/crm/migrations/20260317000001_crm_types.sql",
+    "crates/crm/src/error.rs",
+    "crates/crm/src/lib.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/types.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "cb23f6a0a5db",
+  "token_usage": {
+    "input_tokens": 104,
+    "cache_creation_tokens": 197999,
+    "cache_read_tokens": 4665273,
+    "output_tokens": 48473,
+    "api_call_count": 70
+  },
+  "summary": {
+    "intent": "Investigate and implement CHA-9 (P1.2: Define CRM types) — enrich the existing Contact struct and add Matter, Interaction, ContactChannel structs plus ContactStage, MatterStatus, MatterPhase, PracticeArea enums in the Rust CRM crate.",
+    "outcome": "Investigation summary posted to Linear, full implementation committed on a feature branch with 53/53 tests passing, clippy clean, and rustfmt applied. All 8 required types defined across types.rs, store.rs, store_sqlite.rs, store_memory.rs, error.rs, and a new migration.",
+    "learnings": {
+      "repo": [
+        "secrecy v0.8's Serialize impl for Secret\u003cT\u003e is intentionally opt-in via the SerializableSecret marker trait — deriving Serialize on a struct containing Secret\u003cString\u003e will not compile without custom serde helpers.",
+        "Custom serde helpers for Secret\u003cString\u003e are already established in crates/oauth/src/types.rs and should be replicated (not imported) into other crates that store PII in SQLite.",
+        "All enums follow the ChannelType pattern: derive Debug/Clone/Copy/PartialEq/Eq/Serialize/Deserialize + serde(rename_all = 'snake_case') + as_str() + Display + FromStr impls.",
+        "Timestamps are u64 millis throughout the codebase — no chrono or SystemTime types at the domain layer.",
+        "secrecy = { workspace = true } is available as a workspace dependency (v0.8 with serde feature) and is used extensively in oauth, auth, and providers crates.",
+        "The existing Contact struct had source/external_id fields that were kept for backward compat while ContactChannel provides multi-channel identity."
+      ],
+      "code": [
+        {
+          "path": "crates/oauth/src/types.rs",
+          "finding": "Contains the canonical serde helper pattern for Secret\u003cString\u003e round-trip serialization — reference implementation for any crate that needs PII field serde."
+        },
+        {
+          "path": "crates/crm/src/types.rs",
+          "finding": "opt_secret_eq helper and custom serialize/deserialize helpers for Secret\u003cString\u003e fields were added here; ExposeSecret must be imported at the module level to avoid duplicate imports inside nested scopes."
+        },
+        {
+          "path": "crates/crm/migrations/20260317000001_crm_types.sql",
+          "finding": "Migration naming convention is timestamp-prefixed; new migration must sort after 20260317000000_init.sql which only covered the contacts table."
+        }
+      ],
+      "workflow": [
+        "The LINEAR_API_KEY env var is available in the bash shell but is not forwarded to ctx_execute subprocesses — a temp-file workaround was needed to pass the key to MCP tool calls.",
+        "Running clippy and rustfmt as separate quality gates after tests is necessary; rustfmt produced diffs that required a separate apply step before the commit.",
+        "The autonomous agent workflow uses a Linear comment as a persistent workpad (## Workpad) that is appended to across runs, never overwritten — this preserves decision history across rework iterations."
+      ]
+    },
+    "friction": [
+      "LINEAR_API_KEY not propagated to ctx_execute subprocess environment — required writing key to a temp file and reading it inside the tool call, adding several extra steps.",
+      "secrecy v0.8 Serialize compile error was not anticipated despite being documented in the crate — caused multiple edits to types.rs to retrofit custom serde helpers after the initial compile failure.",
+      "rustfmt produced formatting differences after implementation was complete, requiring an additional apply-and-recommit pass."
+    ],
+    "open_items": [
+      "PracticeArea extensibility: currently a closed enum — may need to support custom/user-defined values for non-legal CRM use cases.",
+      "CrmStore trait splitting: single trait will eventually violate ISP as matter/interaction CRUD methods are added — splitting into MatterStore/InteractionStore traits deferred.",
+      "Secret\u003cString\u003e serde helpers duplicated from crates/oauth/src/types.rs into crates/crm/src/types.rs — a shared internal crate for PII serde utilities would eliminate the duplication.",
+      "store_sqlite.rs SQLite row types and queries for the new tables (matters, interactions, contact_channels) were written but not explicitly verified in the transcript against the new migration schema."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T16:58:03.519274Z",
+    "agent_lines": 1739,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1739,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-9/247aa678-717c-4710-8cb4-d43fe2ba288f.jsonl"
+}

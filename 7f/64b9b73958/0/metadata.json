@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "7f64b9b73958",
+  "session_id": "15946ec6-bbba-4062-a765-78ab96bf4eca",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-11T19:46:45.86182Z",
+  "branch": "installation-feedback",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "crates/chat/src/lib.rs",
+    "crates/gateway/src/services.rs",
+    "crates/service-traits/src/lib.rs",
+    "crates/web/src/api.rs",
+    "crates/web/src/assets/css/components.css",
+    "crates/web/src/assets/js/app.js",
+    "crates/web/src/assets/js/components/session-list.js",
+    "crates/web/src/assets/js/onboarding-view.js",
+    "crates/web/src/assets/js/page-settings.js",
+    "crates/web/src/assets/js/ws-connect.js"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "b45a7cde43ae",
+  "token_usage": {
+    "input_tokens": 6994,
+    "cache_creation_tokens": 135378,
+    "cache_read_tokens": 7152721,
+    "output_tokens": 19107,
+    "api_call_count": 85
+  },
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-11T19:46:44.560728Z",
+    "agent_lines": 84,
+    "human_added": 47,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 133,
+    "agent_percentage": 63.1578947368421
+  }
+}
