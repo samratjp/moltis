@@ -10,14 +10,17 @@
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use moltis_crm::{
-    Contact, ContactChannel, Interaction, Matter, SqliteCrmStore, store::CrmStore,
-    types::{ContactStage, InteractionKind, MatterPhase, MatterStatus, PracticeArea},
+use {
+    async_trait::async_trait,
+    moltis_crm::{
+        Contact, ContactChannel, Interaction, Matter, SqliteCrmStore,
+        store::CrmStore,
+        types::{ContactStage, InteractionKind, MatterPhase, MatterStatus, PracticeArea},
+    },
+    moltis_service_traits::{CrmService, ServiceError, ServiceResult},
+    secrecy::{ExposeSecret, Secret},
+    serde_json::Value,
 };
-use moltis_service_traits::{CrmService, ServiceError, ServiceResult};
-use secrecy::{ExposeSecret, Secret};
-use serde_json::Value;
 
 /// Live CRM service backed by a SQLite store.
 pub struct LiveCrmService {
@@ -100,7 +103,9 @@ impl CrmService for LiveCrmService {
 
     async fn list_contacts(&self) -> ServiceResult {
         let contacts = self.store.list().await.map_err(store_err)?;
-        Ok(Value::Array(contacts.into_iter().map(contact_to_json).collect()))
+        Ok(Value::Array(
+            contacts.into_iter().map(contact_to_json).collect(),
+        ))
     }
 
     async fn get_contact(&self, params: Value) -> ServiceResult {
@@ -130,12 +135,17 @@ impl CrmService for LiveCrmService {
             .list_channels_for_contact(contact_id)
             .await
             .map_err(store_err)?;
-        Ok(Value::Array(channels.into_iter().map(channel_to_json).collect()))
+        Ok(Value::Array(
+            channels.into_iter().map(channel_to_json).collect(),
+        ))
     }
 
     async fn upsert_channel(&self, params: Value) -> ServiceResult {
         let channel = parse_channel(params)?;
-        self.store.upsert_channel(channel).await.map_err(store_err)?;
+        self.store
+            .upsert_channel(channel)
+            .await
+            .map_err(store_err)?;
         Ok(serde_json::json!({ "ok": true }))
     }
 
@@ -149,7 +159,9 @@ impl CrmService for LiveCrmService {
 
     async fn list_matters(&self) -> ServiceResult {
         let matters = self.store.list_matters().await.map_err(store_err)?;
-        Ok(Value::Array(matters.into_iter().map(matter_to_json).collect()))
+        Ok(Value::Array(
+            matters.into_iter().map(matter_to_json).collect(),
+        ))
     }
 
     async fn get_matter(&self, params: Value) -> ServiceResult {
@@ -179,7 +191,9 @@ impl CrmService for LiveCrmService {
                 .list_interactions_by_contact(contact_id)
                 .await
                 .map_err(store_err)?;
-            return Ok(Value::Array(items.into_iter().map(interaction_to_json).collect()));
+            return Ok(Value::Array(
+                items.into_iter().map(interaction_to_json).collect(),
+            ));
         }
         if let Some(matter_id) = params.get("matterId").and_then(|v| v.as_str()) {
             let items = self
@@ -187,7 +201,9 @@ impl CrmService for LiveCrmService {
                 .list_interactions_by_matter(matter_id)
                 .await
                 .map_err(store_err)?;
-            return Ok(Value::Array(items.into_iter().map(interaction_to_json).collect()));
+            return Ok(Value::Array(
+                items.into_iter().map(interaction_to_json).collect(),
+            ));
         }
         Err(ServiceError::message(
             "list_interactions requires contactId or matterId",
@@ -238,7 +254,10 @@ fn parse_contact(p: Value) -> Result<Contact, ServiceError> {
     Ok(Contact {
         id,
         name,
-        source: p.get("source").and_then(|v| v.as_str()).map(ToOwned::to_owned),
+        source: p
+            .get("source")
+            .and_then(|v| v.as_str())
+            .map(ToOwned::to_owned),
         external_id: p
             .get("externalId")
             .and_then(|v| v.as_str())
@@ -362,8 +381,7 @@ fn now_ms() -> u64 {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use super::*;
-    use sqlx::SqlitePool;
+    use {super::*, sqlx::SqlitePool};
 
     async fn make_service() -> LiveCrmService {
         let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
