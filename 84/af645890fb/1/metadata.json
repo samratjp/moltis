@@ -1,0 +1,69 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "84af645890fb",
+  "session_id": "868fe717-595f-4c67-8c1b-9f42754568f9",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T02:17:52.271236Z",
+  "branch": "CHA-15-crm-gateway-integration",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/channel_events.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "641797b088c1",
+  "checkpoint_transcript_start": 35,
+  "transcript_lines_at_start": 35,
+  "token_usage": {
+    "input_tokens": 25,
+    "cache_creation_tokens": 26162,
+    "cache_read_tokens": 1576904,
+    "output_tokens": 8691,
+    "api_call_count": 25
+  },
+  "summary": {
+    "intent": "Add missing test coverage for a CRM gateway integration (CHA-15 branch), specifically covering the None crm_store panic safety path, CRM store error logging path, and empty sender_name fallback.",
+    "outcome": "Added 3 missing tests to crates/gateway/src/channel_events.rs, bringing CRM test coverage to 10/10. All 420 gateway tests pass with no warnings or clippy issues. Changes committed and pushed.",
+    "learnings": {
+      "repo": [
+        "Project uses a pinned nightly rustfmt — formatting must be applied with the pinned toolchain, not default rustfmt",
+        "style.css has a pre-existing compilation issue unrelated to gateway changes",
+        "Gateway crate has 420 total tests split across unit (359), auth (55), and integration (6) suites",
+        "CRM integration lives in crates/gateway/src/channel_events.rs with a crm_tests module",
+        "CrmStore is a trait in crates/crm/src/store.rs — mock implementations needed for error-path testing"
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/channel_events.rs",
+          "finding": "crm_store = None case must not panic; CRM store errors should be logged but must not block delivery; empty Some(\"\") sender_name should fall back gracefully"
+        },
+        {
+          "path": "crates/crm/src/store.rs",
+          "finding": "CrmStore trait requires a mock FailingCrmStore implementation to test error propagation paths"
+        }
+      ],
+      "workflow": [
+        "Subagent diff analysis (7/9 codepaths covered) surfaced missing test cases before writing any code — effective pre-coding audit step",
+        "Run clippy and rustfmt as separate post-test steps before committing to catch style/warning issues",
+        "Check whether compilation errors are pre-existing vs. introduced before investigating them"
+      ]
+    },
+    "friction": [
+      "Pinned nightly rustfmt required a separate format-check step — not obvious from standard cargo fmt workflow",
+      "Unused import warning introduced by new test code required a follow-up edit after initial test run"
+    ],
+    "open_items": [
+      "Minor: empty sender_name string (Some(\"\")) fallback behavior — transcript notes it was added but worth confirming the fallback value is correct per product spec",
+      "Pre-existing style.css compilation issue flagged but left unaddressed — should be tracked separately"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T02:17:38.135689Z",
+    "agent_lines": 0,
+    "human_added": 174,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 174,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-15/868fe717-595f-4c67-8c1b-9f42754568f9.jsonl"
+}
