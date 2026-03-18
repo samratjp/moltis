@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "cbfd7c305781",
+  "strategy": "manual-commit",
+  "branch": "CHA-19-web-ui-crm-tab",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plans/CHA-19-ceo-review-v2.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cb/fd7c305781/0/metadata.json",
+      "transcript": "/cb/fd7c305781/0/full.jsonl",
+      "context": "/cb/fd7c305781/0/context.md",
+      "content_hash": "/cb/fd7c305781/0/content_hash.txt",
+      "prompt": "/cb/fd7c305781/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 33,
+    "cache_creation_tokens": 87494,
+    "cache_read_tokens": 1604545,
+    "output_tokens": 13974,
+    "api_call_count": 22
+  }
+}
