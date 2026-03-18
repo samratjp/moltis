@@ -1,0 +1,104 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "d388fe498f1c",
+  "session_id": "54aa4314-5037-4cee-8afd-b6327be722f8",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T21:07:42.330794Z",
+  "branch": "CHA-52-data-retention-engine",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/config/src/schema.rs",
+    "crates/config/src/validate.rs",
+    "crates/config/src/template.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/channels/src/message_log.rs",
+    "crates/gateway/src/message_log_store.rs",
+    "crates/sessions/src/store.rs",
+    "crates/gateway/src/retention.rs",
+    "crates/gateway/src/lib.rs",
+    "crates/gateway/src/server.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "ededa107ff8a",
+  "token_usage": {
+    "input_tokens": 191,
+    "cache_creation_tokens": 426175,
+    "cache_read_tokens": 14840192,
+    "output_tokens": 48641,
+    "api_call_count": 156
+  },
+  "summary": {
+    "intent": "Implement CHA-52 — a data retention engine for the moltis/openclaw Rust project that automatically purges aged records from CRM interactions, message logs, and session JSONL files based on configurable per-store retention policies.",
+    "outcome": "Full implementation completed and committed on branch `CHA-52-data-retention-engine`: new `DataRetentionConfig` schema section, bulk delete methods on CRM/MessageLog/SessionStore, a `RetentionEngine` with background tokio loop, server wiring, and all tests/clippy/fmt passing clean.",
+    "learnings": {
+      "repo": [
+        "CRM `created_at` is epoch milliseconds while message log `created_at` is epoch seconds — separate cutoff helper functions required per store",
+        "`moltis-crm` is an optional feature (`#[cfg(feature = \"crm\")]`) in `moltis-gateway`, requiring two versions of `RetentionEngine::new()`",
+        "CronPayload types (`SystemEvent`, `AgentTurn`) are LLM-oriented and not appropriate for database maintenance; plain `tokio::spawn` + sleep loop is the right pattern for background system jobs",
+        "`moltis-web` style.css is a generated Tailwind artifact not checked into git — pre-existing compile blocker requires running `npx tailwindcss` before workspace-wide cargo check",
+        "`SqliteCrmStore` was not instantiated anywhere in `moltis-gateway` before this PR — requires fresh `SqliteCrmStore::new(db_pool.clone())` in the retention wiring",
+        "Retention metric constants are not defined in `moltis-metrics` — metrics instrumentation for the retention engine must be deferred until constants are added upstream",
+        "LINEAR_API_KEY env var is not available in MCP ctx_execute subprocesses — only accessible via Bash tool with Python urllib heredoc"
+      ],
+      "code": [
+        {
+          "path": "crates/config/src/schema.rs",
+          "line": 1085,
+          "end_line": 1100,
+          "finding": "DataRetentionConfig struct added here with enabled, schedule, dry_run, and per-store retention_days fields"
+        },
+        {
+          "path": "crates/crm/src/store_memory.rs",
+          "finding": "MemoryCrmStore uses RwLock\u003cHashMap\u003e for interactions; retain() on the map handles bulk delete by cutoff epoch ms"
+        },
+        {
+          "path": "crates/sessions/src/store.rs",
+          "finding": "cleanup_before uses tokio::task::spawn_blocking to scan JSONL files by mtime and also removes associated media/ directories"
+        },
+        {
+          "path": "crates/gateway/src/retention.rs",
+          "finding": "Uses Duration::try_from(time::Duration::days(n)) to bridge the `time` crate and std::time::Duration for cutoff computation"
+        },
+        {
+          "path": "crates/sessions/src/store.rs",
+          "finding": "Clippy collapsible-if lint triggered in cleanup_before — nested if conditions must be collapsed with \u0026\u0026"
+        }
+      ],
+      "workflow": [
+        "Run `cargo check --package \u003ccrate\u003e` per-crate to isolate compile errors rather than workspace-wide checks, especially when a pre-existing unrelated crate is broken",
+        "Background task IDs from previous Claude Code sessions expire and cannot be resumed across context compaction — re-run tests rather than polling expired task IDs",
+        "Apply `cargo +nightly fmt --all` directly rather than manually fixing rustfmt issues; let the formatter do the work",
+        "Stokowski orchestration workflow: investigate → research-review → implement → implementation-review lifecycle with Linear comments as workpad"
+      ]
+    },
+    "friction": [
+      "LINEAR_API_KEY not available in MCP ctx_execute subprocesses — caused ~8 repeated 500 API errors before discovering the Python urllib Bash workaround",
+      "Pre-existing `moltis-web` Tailwind CSS build artifact missing blocked workspace-wide `cargo check` — required a detour to build the CSS before confirming baseline compile state",
+      "`metrics::counter!` macro invocation pattern was wrong; metrics were ultimately removed entirely since retention metric constants don't exist in `moltis-metrics`",
+      "Background test task IDs expired across the context compaction boundary, requiring full re-run of gateway and channels tests",
+      "CronPayload enum exploration was a dead end — the cron infrastructure is LLM-job-oriented and unsuitable for system maintenance tasks, requiring fallback to raw tokio::spawn loop"
+    ],
+    "open_items": [
+      "Memory store retention not implemented — `MemoryStore` trait was identified as needing `delete_stale_files()` in the investigation but was deferred from the implementation",
+      "Cron runs table retention not implemented — `cron_runs` table cleanup was in scope per investigation but not implemented",
+      "Metrics instrumentation deferred — retention engine has no metrics because constants are not yet defined in `moltis-metrics`; needs a follow-up ticket",
+      "Dry-run mode not fully implemented — `dry_run` config field exists but the engine likely does not skip deletes when enabled (needs verification)",
+      "SQLite VACUUM after large deletes — identified as a risk/open question in investigation, not addressed in implementation",
+      "Legal hold consideration — retention should potentially skip CRM interactions for contacts/matters under legal hold; flagged as open question, not resolved",
+      "Session archive-before-delete option — JSONL session files are deleted without backup; `archive_before_delete` config option was suggested but not implemented",
+      "PR creation and Linear workpad update — the transcript ends at commit; push, `gh pr create`, and Linear workpad update were still pending at session end"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T21:07:04.790636Z",
+    "agent_lines": 631,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 631,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-52/54aa4314-5037-4cee-8afd-b6327be722f8.jsonl"
+}

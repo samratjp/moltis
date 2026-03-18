@@ -1,0 +1,87 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "a50114cec0cd",
+  "session_id": "3a32b8f0-20d6-47d6-97c2-4e22a57ea17a",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T19:21:19.867436Z",
+  "branch": "feat/crm-store-queries",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/crm/src/lib.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/crm/src/types.rs",
+    "crates/gateway/src/server.rs",
+    "crates/gateway/src/services.rs",
+    "crates/crm/Cargo.toml"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "f6883081bdde",
+  "token_usage": {
+    "input_tokens": 25,
+    "cache_creation_tokens": 53944,
+    "cache_read_tokens": 965123,
+    "output_tokens": 3167,
+    "api_call_count": 17
+  },
+  "summary": {
+    "intent": "Investigate the CHA-11 Linear issue (P1.4: CRM store SQLite) to understand the current state of the CRM crate implementation and identify any gaps before writing code.",
+    "outcome": "Investigation completed revealing the CRM crate has significant existing implementation but has two compliance gaps: missing `tracing` feature flag (per CLAUDE.md conventions) and `tracing` declared as a dependency but never used in source.",
+    "learnings": {
+      "repo": [
+        "CLAUDE.md requires all crates to have both `tracing` and `metrics` features, gated with `#[cfg(feature = \"...\")]`",
+        "The pattern for optional tracing is `tracing = [\"dep:tracing\"]` with tracing as an optional dependency, as seen in `vault` and `swift-bridge` crates",
+        "The CRM crate has a `metrics` feature but no `tracing` feature flag — inconsistent with project conventions",
+        "The CRM crate integrates with gateway via feature flag (`cfg(feature = \"crm\")`)"
+      ],
+      "code": [
+        {
+          "path": "crates/crm/Cargo.toml",
+          "finding": "`tracing` is listed as a non-optional dependency with no corresponding `tracing` feature flag, violating CLAUDE.md conventions"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "SQLite store implementation exists with migrations"
+        },
+        {
+          "path": "crates/crm/src/store_memory.rs",
+          "finding": "In-memory store implementation exists alongside SQLite"
+        },
+        {
+          "path": "crates/crm/migrations/20260317000000_init.sql",
+          "finding": "Two migration files exist for CRM schema initialization"
+        },
+        {
+          "path": "crates/gateway/src/server.rs",
+          "finding": "Gateway wires CRM behind a feature flag"
+        }
+      ],
+      "workflow": [
+        "Full workspace builds are slow; use per-crate `cargo check -p \u003ccrate\u003e` for faster compile verification during investigation",
+        "Autonomous agent workflow uses Linear comments as a persistent workpad, appending at each milestone rather than overwriting",
+        "Investigation stage is strictly read-only — no source modifications, no branches, no PRs"
+      ]
+    },
+    "friction": [
+      "Full workspace build took long enough that the agent had to switch to per-crate compilation to get timely feedback",
+      "Background task outputs required multiple polling calls (`TaskOutput`) to retrieve results, adding latency to the investigation loop"
+    ],
+    "open_items": [
+      "Add `tracing` feature flag to `crates/crm/Cargo.toml` and make the dependency optional, matching the pattern in `vault` and `swift-bridge`",
+      "Add actual `tracing::` instrumentation to CRM source files (currently declared but never used)",
+      "Verify gateway feature flag wiring is complete for CRM in both `server.rs` and `services.rs`",
+      "Confirm all CRM crate tests pass cleanly before implementation stage begins"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T19:21:00.689793Z",
+    "agent_lines": 516,
+    "human_added": 186,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 702,
+    "agent_percentage": 73.50427350427351
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-11/3a32b8f0-20d6-47d6-97c2-4e22a57ea17a.jsonl"
+}

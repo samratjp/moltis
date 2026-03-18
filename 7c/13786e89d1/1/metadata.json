@@ -1,0 +1,91 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "7c13786e89d1",
+  "session_id": "c72c78ea-ae7f-4ed2-8288-80851acece49",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T18:21:30.450546Z",
+  "branch": "CHA-14-crm-config-schema",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/config/src/schema.rs",
+    "crates/config/src/validate.rs",
+    "crates/config/src/template.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "8e298778a0a5",
+  "token_usage": {
+    "input_tokens": 62,
+    "cache_creation_tokens": 129320,
+    "cache_read_tokens": 2844195,
+    "output_tokens": 13062,
+    "api_call_count": 50
+  },
+  "summary": {
+    "intent": "Investigate and implement a [crm] config section in the MoltisConfig schema for the CHA-14 Linear issue, following existing CalDav/Cron patterns.",
+    "outcome": "Successfully implemented CrmConfig struct in schema.rs, added schema map entry and semantic validation in validate.rs, added a commented [crm] template section in template.rs, added 5 new unit tests (160 total passing), and committed the changes on a feature branch.",
+    "learnings": {
+      "repo": [
+        "Config changes require touching 4 files: schema.rs (struct definition + MoltisConfig field), validate.rs (build_schema_map + check_semantic_warnings), and template.rs (commented TOML section).",
+        "The moltis-crm crate defines a PracticeArea enum with 9 variants: corporate, employment, family_law, immigration, intellectual_property, litigation, real_estate, tax, other.",
+        "The gateway gates CRM behind #[cfg(feature = \"crm\")] but config structs should always be present and deserialize to defaults when the section is absent.",
+        "CalDavConfig and CronConfig are the canonical reference patterns for new config sections — use #[serde(default)] and implement Default.",
+        "build_schema_map() in validate.rs must be updated alongside schema.rs to keep schema validation in sync with struct definitions.",
+        "check_semantic_warnings() in validate.rs is where enum-constrained string fields (like default_practice_area) are validated against allowed values."
+      ],
+      "code": [
+        {
+          "path": "crates/config/src/schema.rs",
+          "line": 200,
+          "end_line": 232,
+          "finding": "MoltisConfig struct definition — crm field added after webhooks, before env."
+        },
+        {
+          "path": "crates/config/src/validate.rs",
+          "line": 535,
+          "end_line": 535,
+          "finding": "build_schema_map() — add Struct(HashMap::from([...])) entry for 'crm' here alongside caldav/cron/webhooks."
+        },
+        {
+          "path": "crates/config/src/validate.rs",
+          "line": 1257,
+          "end_line": 1257,
+          "finding": "check_semantic_warnings() — location for default_practice_area validation against PracticeArea enum variants."
+        },
+        {
+          "path": "crates/config/src/template.rs",
+          "line": 631,
+          "end_line": 631,
+          "finding": "Default config template — [crm] section inserted after channels/hooks, before env."
+        }
+      ],
+      "workflow": [
+        "Run cargo check/test on the specific crate (not workspace-wide) to avoid noise from unrelated build failures like missing generated assets.",
+        "The nightly rustfmt pinned version must be used for format checks — standard cargo fmt may not match CI.",
+        "Test count is a useful sanity check: baseline was 155 tests, after adding CRM validation tests it became 160."
+      ]
+    },
+    "friction": [
+      "LINEAR_API_KEY was not set in the agent environment, blocking all Linear API calls — investigation summary and workpad could not be posted as required by the workflow.",
+      "Pre-existing build failure: missing crates/web/src/assets/style.css caused cargo check to fail at the workspace level; required scoping checks to the specific crate.",
+      "validate.rs is very large (2600+ lines), requiring multiple paginated reads to locate the right insertion points for build_schema_map and check_semantic_warnings.",
+      "The same file (schema.rs and validate.rs) was read multiple times across the session due to the large file size and need to find specific sections."
+    ],
+    "open_items": [
+      "Gateway wiring not done — server.rs currently only calls run_migrations(); future work needs to read config.crm to instantiate/configure SqliteCrmStore.",
+      "The missing style.css build failure is a pre-existing issue unrelated to CRM; it needs: cd crates/web/ui \u0026\u0026 npx tailwindcss -i input.css -o ../src/assets/style.css --minify.",
+      "Semantic validation of default_practice_area could be skipped when the crm feature flag is off — currently always validated.",
+      "Investigation and workpad comments were never posted to Linear due to missing API key — this gap in the orchestration workflow needs a fix.",
+      "PR creation was not confirmed in the transcript — the session ends at git commit staging, so the PR may not have been created/linked to Linear."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T18:20:59.951483Z",
+    "agent_lines": 186,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 186,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-14/c72c78ea-ae7f-4ed2-8288-80851acece49.jsonl"
+}

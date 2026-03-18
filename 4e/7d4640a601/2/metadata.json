@@ -1,0 +1,72 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "4e7d4640a601",
+  "session_id": "a8709dca-6e6d-4025-90a7-d8c55711e6bd",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T02:03:16.724589Z",
+  "branch": "CHA-15-crm-gateway-integration",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "crates/gateway/src/channel_events.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "21ad0c93f57b",
+  "token_usage": {
+    "input_tokens": 22,
+    "cache_creation_tokens": 61524,
+    "cache_read_tokens": 648918,
+    "output_tokens": 3406,
+    "api_call_count": 13
+  },
+  "summary": {
+    "intent": "Perform a pre-landing code review of CHA-15 (Wire CRM into gateway), which adds automatic contact creation and interaction logging to the channel event pipeline by hooking CRM operations into GatewayChannelEventSink::emit().",
+    "outcome": "Review completed with 1 informational fix applied (dead `args` tuple and `drop(args)` call removed from a test). No critical issues found; the diff was approved as clean.",
+    "learnings": {
+      "repo": [
+        "CRM subsystem is fully built at storage/RPC layers (CrmStore trait, SqliteCrmStore, MemoryCrmStore, LiveCrmService, 16 RPC methods) but had zero channel event integration before this change.",
+        "GatewayChannelEventSink uses Arc\u003ctokio::sync::OnceCell\u003cArc\u003cGatewayState\u003e\u003e\u003e for deferred state access; CRM store is passed directly at construction via a with_crm builder method rather than going through GatewayState.",
+        "CRM store is accessed directly (bypassing CrmService/JSON round-trip) for internal gateway operations — established pattern from the retention engine.",
+        "All CRM writes are tokio::spawn fire-and-forget to never block message delivery; failures log warn! and return silently.",
+        "channel_webhook_dedup.rs handles HTTP-level dedup; CRM interaction logging is downstream and accepts duplicates by design.",
+        "Feature is gated both by #[cfg(feature = \"crm\")] compile-time flag and config.crm.enabled runtime flag.",
+        "Contact name update uses UPSERT with a benign TOCTOU — worst case a concurrent name update is lost, which is acceptable for display names.",
+        "No TODOS.md exists in the repo."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/channel_events.rs",
+          "line": 2169,
+          "end_line": 2169,
+          "finding": "Dead code: `args` tuple was constructed and only passed to `drop(args)` in the `logs_multiple_interactions_for_same_contact` test. Removed the dead tuple and drop call."
+        }
+      ],
+      "workflow": [
+        "The review used a two-pass structure: Pass 1 for critical issues (SQL injection, race conditions, LLM trust boundaries, enum completeness) and Pass 2 for informational/style issues.",
+        "Greptile comment fetch is part of the review preamble; when no comments exist the review proceeds without them.",
+        "Auto-fixes during review (like the dead code removal) are applied inline and reported in the review summary rather than opened as separate tickets."
+      ]
+    },
+    "friction": [
+      "No Greptile comments were available, so the review relied entirely on manual diff inspection without automated triage hints."
+    ],
+    "open_items": [
+      "Contact merge/dedup — same person on multiple channels creates separate contacts (future ticket needed).",
+      "Outbound interaction logging — only inbound messages create interactions; outbound/bot responses are not logged.",
+      "CRM Web UI — contact timeline view in the web dashboard.",
+      "GDPR documentation — auto-contact creation from inbound messages has privacy implications that need documentation.",
+      "Interaction deduplication — currently accepts duplicates from webhook retries; retention engine handles growth.",
+      "Metrics behind #[cfg(feature = \"metrics\")] (crm.contacts.auto_created, crm.interactions.logged, crm.errors) are specified but implementation not confirmed in transcript.",
+      "CRM docs do not yet exist — no staleness concern now but will need to be created as the feature matures."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T02:02:48.956389Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-15/a8709dca-6e6d-4025-90a7-d8c55711e6bd.jsonl"
+}
