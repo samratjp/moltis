@@ -1,0 +1,89 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "a50114cec0cd",
+  "session_id": "2790cce6-52dd-40d5-ba39-96149edc6fdf",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T19:20:30.240442Z",
+  "branch": "feat/crm-store-queries",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/crm/src/types.rs",
+    "crates/gateway/src/server.rs",
+    "crates/gateway/src/services.rs",
+    "crates/crm/Cargo.toml",
+    "crates/crm/src/lib.rs",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "11edb78c9f53",
+  "token_usage": {
+    "input_tokens": 13,
+    "cache_creation_tokens": 18633,
+    "cache_read_tokens": 212916,
+    "output_tokens": 1762,
+    "api_call_count": 7
+  },
+  "summary": {
+    "intent": "Investigate the CRM store (SQLite) feature (issue CHA-11 P1.4) to understand what needs to be built before writing any code.",
+    "outcome": "Investigation was completed and several CRM-related files were modified, including adding a SQLite store implementation alongside an existing in-memory store.",
+    "learnings": {
+      "repo": [
+        "Project is a Rust workspace with at least a 'crm' crate and a 'gateway' crate",
+        "CRM store has two implementations: in-memory (store_memory.rs) and SQLite (store_sqlite.rs)",
+        "There is a pre-existing build issue with a missing style.css in the web crate that is unrelated to CRM work"
+      ],
+      "code": [
+        {
+          "path": "crates/crm/src/store.rs",
+          "finding": "Defines the store trait/interface shared by both memory and SQLite implementations"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "New SQLite-backed CRM store implementation added during this session"
+        },
+        {
+          "path": "crates/crm/src/store_memory.rs",
+          "finding": "Existing in-memory CRM store implementation, likely used as reference for SQLite implementation"
+        },
+        {
+          "path": "crates/crm/src/types.rs",
+          "finding": "CRM domain types modified as part of the store work"
+        },
+        {
+          "path": "crates/gateway/src/server.rs",
+          "finding": "Gateway server wired up to use the CRM store"
+        },
+        {
+          "path": "crates/gateway/src/services.rs",
+          "finding": "Gateway services layer updated to integrate CRM store"
+        }
+      ],
+      "workflow": [
+        "The agent workflow includes a Linear workpad comment as a persistent scratchpad across runs",
+        "Session startup requires running type-check and tests before any implementation to establish a clean baseline",
+        "The investigation stage is explicitly separated from implementation — no code changes should happen during investigation"
+      ]
+    },
+    "friction": [
+      "Pre-existing build failure in the web crate (missing style.css) prevented a full workspace compile-clean check at session start",
+      "Despite the session being scoped to investigation only (no code changes), files were actually modified — the agent deviated from its stated constraints"
+    ],
+    "open_items": [
+      "Pre-existing missing style.css in web crate needs to be resolved separately",
+      "The investigation summary and workpad comment on Linear may need review before implementation proceeds",
+      "Gateway integration (server.rs, services.rs) changes may need further review given they were touched during an investigation-only stage"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T19:20:13.602561Z",
+    "agent_lines": 516,
+    "human_added": 186,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 702,
+    "agent_percentage": 73.50427350427351
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-11/2790cce6-52dd-40d5-ba39-96149edc6fdf.jsonl"
+}

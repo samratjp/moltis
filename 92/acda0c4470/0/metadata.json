@@ -1,0 +1,100 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "92acda0c4470",
+  "session_id": "673e5eb5-fab5-457b-855b-48b61384f712",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T06:51:14.294803Z",
+  "branch": "CHA-19-web-ui-crm-tab",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs",
+    "crates/web/src/assets/js/i18n.js",
+    "crates/web/src/assets/js/locales/en/crm.js",
+    "crates/web/src/assets/js/locales/zh/crm.js",
+    "crates/web/src/assets/js/page-settings.js",
+    "crates/web/src/templates/index.html",
+    "crates/cli/Cargo.toml",
+    "crates/gateway/src/lib.rs",
+    "crates/web/Cargo.toml",
+    "crates/web/src/assets/js/app.js",
+    "crates/web/src/assets/js/locales/fr/crm.js",
+    "crates/web/src/assets/js/nav-counts.js",
+    "crates/web/src/assets/js/page-crm.js",
+    "crates/web/src/templates.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "6b444f86aca2",
+  "token_usage": {
+    "input_tokens": 74,
+    "cache_creation_tokens": 137799,
+    "cache_read_tokens": 8608196,
+    "output_tokens": 24352,
+    "api_call_count": 70
+  },
+  "summary": {
+    "intent": "Implement CHA-19: a CRM tab Web UI for the Stokowski project, wiring up the existing CRM backend (contacts, matters, interactions) to a new Preact SPA page with navigation, i18n, and nav count badge.",
+    "outcome": "All 9 planned files were implemented (4 new, 5 modified), quality gates passed (cargo check, biome, tests), and the work was committed. A 10th file (page-settings.js) was also modified to add the CRM nav link to the settings sidebar.",
+    "learnings": {
+      "repo": [
+        "The entire frontend uses WebSocket RPC via sendRpc() for all CRUD operations — zero pages use REST. The CEO review's recommendation to add ~15 REST handlers was incorrect; engineering review corrected this to reuse existing RPC methods.",
+        "All pages follow the page-channels.js pattern: single large file (~1500-2000 lines) with internal Preact components, registerPage()/registerPrefix() for routing, signal() for state, and sendRpc() for data access.",
+        "Feature gating uses crm_enabled: bool in GonData (Rust-injected JSON), matching the graphql_enabled and voice_enabled patterns. JS checks gon.get('crm_enabled') before registering routes.",
+        "NavCounts are built via a tokio::join! block in build_nav_counts() in templates.rs. Adding CRM count adds ~1ms latency and currently loads full contact list to get count (len() call).",
+        "Navigation for top-level pages (CRM, projects, monitoring) uses registerPrefix() not registerPage(), supporting both /crm and /crm/:contactId sub-routes.",
+        "The settings sidebar (page-settings.js) controls visibility of top-level nav links — CRM had to be added to getSectionItems, getVisibleSections filter, and pageSectionHandlers.",
+        "i18n uses namespace loader pattern in i18n.js — each page registers its own namespace (e.g., 'crm') pointing to a locales/{lang}/crm.js file.",
+        "PII fields (email, phone) are Secret\u003cString\u003e in Rust but LiveCrmService.contact_to_json() already calls expose_secret() for authenticated JSON serialization — no additional exposure needed.",
+        "SQLite CRM store's list_filtered() does NOT escape % and _ wildcards in LIKE queries — searching for % matches all contacts. Low severity in single-tenant context.",
+        "RPC methods are registered at gateway/src/methods/services.rs:4516 — 14 CRM methods covering contacts, channels, matters, and interactions CRUD."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4516,
+          "end_line": 4516,
+          "finding": "All 14 CRM RPC method registrations live here: crm.contacts.list/get/upsert/delete, crm.channels.list/upsert/delete, crm.matters.list/get/upsert/delete, crm.interactions.list/record/delete"
+        },
+        {
+          "path": "crates/web/src/templates.rs",
+          "finding": "SpaRoutes and NavCounts structs live here; crm_enabled bool and crm NavCount were added matching graphql_enabled pattern"
+        },
+        {
+          "path": "crates/web/src/assets/js/page-settings.js",
+          "finding": "Controls top-level nav visibility — getSectionItems, getVisibleSections, and pageSectionHandlers all needed CRM entries for the tab to be reachable"
+        }
+      ],
+      "workflow": [
+        "Headless orchestration agents must resolve all open architecture decisions autonomously — the eng review resolved 5 open decisions (RPC vs REST, route depth, feature gating, single file, PII display) without human input.",
+        "Running cargo check and biome separately is necessary — the project has no unified 'check all' script.",
+        "The CEO review stage can produce incorrect technical recommendations (e.g., REST endpoints when RPC already exists); an engineering review pass is essential for scope correction before implementation.",
+        "Background task outputs (TaskOutput tool calls) required polling to retrieve results — multiple TaskOutput calls were needed before results were available."
+      ]
+    },
+    "friction": [
+      "Multiple rounds of exploration were needed to locate where the CRM nav link needed to be wired — page-settings.js was not in the original 9-file scope but turned out to be required for navigation to work.",
+      "Background cargo check and test runs required repeated TaskOutput polling before results were available, adding latency to quality verification.",
+      "No unified quality check script — had to run cargo check, biome, and test suites separately across multiple crates (crm, web, gateway).",
+      "The settings page nav architecture (getSectionItems + getVisibleSections + pageSectionHandlers) required reading large portions of page-settings.js multiple times to understand all three injection points."
+    ],
+    "open_items": [
+      "E2E Playwright tests (crm.spec.js) — test spec was defined in the engineering review but implementation deferred to a separate ticket requiring E2E infra changes (gateway running with CRM feature enabled).",
+      "Optimistic locking for concurrent CRM updates — last-write-wins is acceptable for v1 single-tenant but should be tracked; requires updated_at comparison on upsert.",
+      "Contact count optimization — NavCounts currently calls list_contacts().len() loading all contacts; a count_contacts() SELECT COUNT(*) method should be added when contact counts exceed ~1000.",
+      "LIKE wildcard escaping in CRM search — % and _ in search terms are passed through unescaped, causing wider-than-intended matches. Low severity, single-tenant only.",
+      "French and Chinese translations — locale files (fr/crm.js, zh/crm.js) were created with English fallback strings; actual translations are a separate i18n pass.",
+      "Matter kanban drag-and-drop view — v1 uses table with status dropdown; Phase 2 feature.",
+      "Contact merge/dedup — detect and merge duplicate contacts across channels; Phase 2.",
+      "PII reveal-on-click masking — v1 shows email/phone directly; masking with reveal interaction was identified as a delight opportunity but deferred."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T06:50:31.5146Z",
+    "agent_lines": 0,
+    "human_added": 1557,
+    "human_modified": 19,
+    "human_removed": 0,
+    "total_committed": 1557,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-19/673e5eb5-fab5-457b-855b-48b61384f712.jsonl"
+}

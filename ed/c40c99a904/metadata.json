@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "edc40c99a904",
+  "strategy": "manual-commit",
+  "branch": "feat/cha-17-crm-matters-rpc",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ed/c40c99a904/0/metadata.json",
+      "transcript": "/ed/c40c99a904/0/full.jsonl",
+      "context": "/ed/c40c99a904/0/context.md",
+      "content_hash": "/ed/c40c99a904/0/content_hash.txt",
+      "prompt": "/ed/c40c99a904/0/prompt.txt"
+    },
+    {
+      "metadata": "/ed/c40c99a904/1/metadata.json",
+      "transcript": "/ed/c40c99a904/1/full.jsonl",
+      "context": "/ed/c40c99a904/1/context.md",
+      "content_hash": "/ed/c40c99a904/1/content_hash.txt",
+      "prompt": "/ed/c40c99a904/1/prompt.txt"
+    },
+    {
+      "metadata": "/ed/c40c99a904/2/metadata.json",
+      "transcript": "/ed/c40c99a904/2/full.jsonl",
+      "context": "/ed/c40c99a904/2/context.md",
+      "content_hash": "/ed/c40c99a904/2/content_hash.txt",
+      "prompt": "/ed/c40c99a904/2/prompt.txt"
+    },
+    {
+      "metadata": "/ed/c40c99a904/3/metadata.json",
+      "transcript": "/ed/c40c99a904/3/full.jsonl",
+      "context": "/ed/c40c99a904/3/context.md",
+      "content_hash": "/ed/c40c99a904/3/content_hash.txt",
+      "prompt": "/ed/c40c99a904/3/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 781,
+    "cache_creation_tokens": 980186,
+    "cache_read_tokens": 17730924,
+    "output_tokens": 88668,
+    "api_call_count": 236
+  }
+}

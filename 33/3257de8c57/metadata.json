@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "333257de8c57",
+  "strategy": "manual-commit",
+  "branch": "stt-401-during-onboarding",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "crates/cli/src/node_commands.rs",
+    "crates/gateway/src/auth_middleware.rs",
+    "crates/gateway/tests/auth_middleware.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/33/3257de8c57/0/metadata.json",
+      "transcript": "/33/3257de8c57/0/full.jsonl",
+      "context": "/33/3257de8c57/0/context.md",
+      "content_hash": "/33/3257de8c57/0/content_hash.txt",
+      "prompt": "/33/3257de8c57/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 101,
+    "cache_creation_tokens": 275867,
+    "cache_read_tokens": 7485970,
+    "output_tokens": 1385,
+    "api_call_count": 88
+  }
+}

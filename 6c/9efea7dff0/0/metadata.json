@@ -1,0 +1,89 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "6c9efea7dff0",
+  "session_id": "85170bab-66e2-4d94-971c-98f646e1374b",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T02:55:49.857534Z",
+  "branch": "CHA-16-rpc-crm-contacts",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/service-traits/src/lib.rs",
+    "crates/gateway/src/crm_service.rs",
+    "crates/gateway/src/methods/services.rs",
+    "crates/gateway/src/methods/mod.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "40da1420f1d0",
+  "token_usage": {
+    "input_tokens": 100,
+    "cache_creation_tokens": 334726,
+    "cache_read_tokens": 5697416,
+    "output_tokens": 27923,
+    "api_call_count": 69
+  },
+  "summary": {
+    "intent": "Implement CHA-16: expose additional crm.contacts.* RPC methods (filtered list, getByExternal, getWithChannels) that were implemented in the store layer but not wired to the RPC surface.",
+    "outcome": "Successfully added 3 new RPC methods (crm.contacts.list with filter params, crm.contacts.getByExternal, crm.contacts.getWithChannels), updated the CrmService trait and LiveCrmService impl, added 12 new tests, and committed all changes. 26 tests pass.",
+    "learnings": {
+      "repo": [
+        "The CRM stack is fully layered: CrmStore trait (21 methods) → CrmService trait → LiveCrmService → RPC registration in services.rs + auth scope in mod.rs. Wiring a new method requires touching all 4 layers.",
+        "RPC auth scoping uses READ_METHODS/WRITE_METHODS string slices in crates/gateway/src/methods/mod.rs (lines 90-96, 221-228). New read methods must be added to READ_METHODS.",
+        "The project uses nightly rustfmt — format must be applied with nightly toolchain, not stable.",
+        "Clippy must be run without --all-features on macOS (no nvcc/CUDA available).",
+        "CrmStore has MemoryCrmStore for tests and SqliteCrmStore for prod — service-level tests use the memory impl.",
+        "The existing list_contacts() and list_matters() service methods took no params — inconsistent with all other CrmService methods that take params: Value. This had to be fixed to enable filtering."
+      ],
+      "code": [
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "line": 1249,
+          "end_line": 1269,
+          "finding": "CrmService trait definition — 15 methods. list_contacts() and list_matters() were the only methods without params: Value, requiring a signature change."
+        },
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4514,
+          "end_line": 4709,
+          "finding": "All 15 CRM RPC method registrations live here. Each handler follows the pattern: parse params from ctx.params, call service method, serialize result."
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 362,
+          "end_line": 657,
+          "finding": "13 existing service-level tests using MemoryCrmStore. Two tests (test_list_contacts and one other) called list_contacts() with no args and needed updating when the signature changed."
+        }
+      ],
+      "workflow": [
+        "The CEO review phase (plan-ceo-review skill) does a nuclear scope challenge and system audit before any implementation — it found that basic CRUD was already done and identified the real gap (3 unwired store methods).",
+        "The eng review phase (plan-eng-review skill) produces a formal test plan artifact written to ~/.gstack/projects/... and maps all failure modes before implementation begins.",
+        "The pipeline is: ceo-review → eng-review → implement → code-review, each triggered by skill invocations with Linear lifecycle context.",
+        "Running a background compile check while reading files saved time during the implement phase."
+      ]
+    },
+    "friction": [
+      "list_contacts() signature change broke two existing tests that called it with no arguments — required hunting down and fixing callers after the trait change.",
+      "Clippy --all-features fails on macOS due to missing nvcc/CUDA — had to know to omit that flag.",
+      "The CEO review agent called AskUserQuestion (interactive) in a headless session — violated the ground rule of no user interaction. The session stalled and had to be resumed.",
+      "The implement stage prompt had blank Issue/URL/Status fields (template variables not substituted), making it harder to orient to context.",
+      "Had to iterate on finding the exact end of the test module in crm_service.rs across multiple Read calls to find the right insertion point."
+    ],
+    "open_items": [
+      "crm.channels.getByExternal — store has get_channel_by_external() but it's not wired to RPC; deferred as out-of-scope follow-up ticket.",
+      "crm.matters.listFiltered and crm.matters.listByContact — store methods exist but deferred (not in crm.contacts.* namespace).",
+      "Unbounded list_contacts with no params still returns all rows — backward-compat was preserved (6B decision) but a default limit for large datasets is a future concern.",
+      "Structured CRM error codes — store_err() converts all errors to generic string messages; structured codes (not-found vs constraint-violation vs db-error) would improve client-side handling.",
+      "Bulk operations (batch upsert/delete), contact merge/dedup, real-time CRM event subscriptions, fuzzy search — all identified in dream state but out of scope for this PR.",
+      "list_matters() still takes no params — same pattern inconsistency as list_contacts() was, noted for follow-up."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T02:55:16.008183Z",
+    "agent_lines": 354,
+    "human_added": 276,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 630,
+    "agent_percentage": 56.19047619047619
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-16/85170bab-66e2-4d94-971c-98f646e1374b.jsonl"
+}

@@ -1,0 +1,104 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "92acda0c4470",
+  "session_id": "d5af9454-b310-4735-9a21-cf8c5e95be56",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T06:52:55.559913Z",
+  "branch": "CHA-19-web-ui-crm-tab",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/web/src/assets/js/app.js",
+    "crates/web/src/assets/js/locales/fr/crm.js",
+    "crates/web/src/assets/js/nav-counts.js",
+    "crates/web/src/assets/js/page-crm.js",
+    "crates/web/src/templates.rs",
+    "crates/gateway/src/crm_service.rs",
+    "crates/web/src/assets/js/i18n.js",
+    "crates/web/src/assets/js/locales/en/crm.js",
+    "crates/web/src/assets/js/locales/zh/crm.js",
+    "crates/web/src/assets/js/page-settings.js",
+    "crates/web/src/templates/index.html",
+    "crates/cli/Cargo.toml",
+    "crates/gateway/src/lib.rs",
+    "crates/web/Cargo.toml"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "cd6da3fca138",
+  "token_usage": {
+    "input_tokens": 105,
+    "cache_creation_tokens": 185419,
+    "cache_read_tokens": 11206152,
+    "output_tokens": 40920,
+    "api_call_count": 97
+  },
+  "summary": {
+    "intent": "Implement the CRM web UI tab (CHA-19) as a headless autonomous agent, creating 4 new JS files and modifying 5 existing files to expose the already-complete CRM backend through a Preact SPA page using WebSocket RPC.",
+    "outcome": "All 9 files were created/modified, Rust compiled clean, biome linting passed after fixing barrel-file and unused-parameter warnings, nightly fmt applied, and the implementation was ready for cargo test + PR creation.",
+    "learnings": {
+      "repo": [
+        "All pages use WebSocket RPC via sendRpc() — zero pages use REST for CRUD. The engineering review corrected a CEO review that incorrectly recommended ~15 new REST handlers.",
+        "Feature gating uses cfg!(feature = \"crm\") in Rust and gon.get(\"crm_enabled\") in JS, matching the graphql_enabled/voice_enabled pattern.",
+        "Top-level routes use registerPrefix (not registerPage) to handle both /crm and /crm/:contactId via a param argument.",
+        "NavCounts badge IDs follow the pattern navCount{Feature} (e.g., navCountCrm) and are updated via updateNavCount().",
+        "i18n locale files must be full content copies for fr/zh fallbacks — re-exports (barrel files) are flagged by biome as lint/performance/noBarrelFile.",
+        "The crm feature must be declared in both moltis-web/Cargo.toml and propagated from crates/cli/Cargo.toml using moltis-web?/crm syntax.",
+        "style.css is gitignored and must be rebuilt via npx tailwindcss in crates/web/ui/ before cargo check will pass.",
+        "NavCounts uses tokio::join! for concurrent queries; adding CRM count requires adding list_contacts() to the join block and computing .len() on the result array."
+      ],
+      "code": [
+        {
+          "path": "crates/web/src/templates.rs",
+          "finding": "GonData struct had crm_enabled field declared but not initialized; NavCounts had crm: usize field but list_contacts() was not called in the tokio::join! block — both were pre-existing gaps on the branch."
+        },
+        {
+          "path": "crates/web/Cargo.toml",
+          "finding": "crm feature was missing entirely — cfg!(feature = \"crm\") would always evaluate to false without it."
+        },
+        {
+          "path": "crates/cli/Cargo.toml",
+          "finding": "crm feature needed moltis-web?/crm added alongside existing dep:moltis-crm and moltis-gateway/crm entries."
+        },
+        {
+          "path": "crates/web/src/assets/js/page-crm.js",
+          "finding": "MattersTab and InteractionsTab functions had contactId in destructuring params but read from module-level signals instead — biome flagged as unused parameters."
+        },
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4516,
+          "finding": "All 14 CRM RPC methods (crm.contacts.list/get/upsert/delete, crm.matters.*, crm.interactions.*, crm.channels.*) already registered here — confirmed zero new Rust handlers needed."
+        }
+      ],
+      "workflow": [
+        "Headless autonomous sessions require all architecture decisions to be pre-resolved in workpad comments before the implementation run begins.",
+        "Running cargo check before and after changes catches feature-flag issues early — especially important when cfg!(feature) gates are involved.",
+        "biome --write catches and auto-fixes most formatting issues; barrel file warnings (noBarrelFile) require manual content duplication rather than re-exports.",
+        "Nightly rustfmt must be applied (not just checked) when formatting changes are needed, then re-verified with --check."
+      ]
+    },
+    "friction": [
+      "style.css was missing from the dev environment (gitignored artifact) causing cargo check to fail until manually rebuilt with npx tailwindcss.",
+      "The pre-existing branch had incomplete struct initializations (NavCounts.crm and GonData.crm_enabled) that required investigation to diagnose why cargo check failed.",
+      "moltis-web Cargo.toml was missing the crm feature entirely — cfg!(feature = \"crm\") silently always false with no compile error, only caught by reasoning about feature propagation.",
+      "Waiting for async cargo check/test TaskOutput required polling workarounds — background task output retrieval was unreliable.",
+      "fr/zh locale files had to be rewritten from clean re-exports to full content copies due to biome barrel file rule, adding unnecessary boilerplate."
+    ],
+    "open_items": [
+      "E2E Playwright test implementation for CRM flows (crm.spec.js) — deferred to separate ticket, requires E2E infra with CRM feature enabled.",
+      "Contact count optimization: add count_contacts() method returning SELECT COUNT(*) instead of loading all contacts in build_nav_counts (only matters at 1000+ contacts).",
+      "LIKE wildcard escaping for % and _ in CRM search terms in SqliteCrmStore::list_filtered (P3, cosmetic, single-tenant only).",
+      "Optimistic locking for concurrent contact/matter updates — last-write-wins is acceptable for v1 single-tenant but flagged as known limitation.",
+      "French and Chinese translations — fr/zh locale files currently contain English fallback strings; proper translations are a separate i18n pass.",
+      "PR creation and Linear workpad update — the implementation run ended before git push and gh pr create were confirmed complete."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T06:52:20.655147Z",
+    "agent_lines": 0,
+    "human_added": 1557,
+    "human_modified": 19,
+    "human_removed": 0,
+    "total_committed": 1557,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-19/d5af9454-b310-4735-9a21-cf8c5e95be56.jsonl"
+}

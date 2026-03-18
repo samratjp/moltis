@@ -1,0 +1,85 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "cbfd7c305781",
+  "session_id": "79ea079b-820b-41a0-bf00-0660f3c228d7",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T05:12:29.216286Z",
+  "branch": "CHA-19-web-ui-crm-tab",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plans/CHA-19-ceo-review-v2.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "2c8528beb33d",
+  "token_usage": {
+    "input_tokens": 33,
+    "cache_creation_tokens": 87494,
+    "cache_read_tokens": 1604545,
+    "output_tokens": 13974,
+    "api_call_count": 22
+  },
+  "summary": {
+    "intent": "Run a CEO-level review of CHA-19 (Web UI CRM Tab) to validate scope, architecture decisions, and implementation plan before moving to implementation.",
+    "outcome": "CEO review v2 was written, saved to plans/CHA-19-ceo-review-v2.md, posted as a Linear comment on CHA-19, and committed to the workspace branch.",
+    "learnings": {
+      "repo": [
+        "All page data access uses WebSocket RPC via sendRpc() — there are NO REST endpoints for page data in this codebase. The CEO review's REST recommendation was wrong.",
+        "RPC methods for CRM already exist at gateway/src/methods/services.rs:4516 — 14 methods covering full CRUD for contacts, matters, interactions, and channels.",
+        "The channels page (page-channels.js) is the canonical pattern for new page modules: signal state, sendRpc(), registerPrefix(), single large file with internal Preact components.",
+        "Feature gating uses #[cfg(feature = \"crm\")] in Rust and gon-injected booleans (e.g. graphql_enabled, voice_enabled) in JS to conditionally register routes.",
+        "NavCounts uses tokio::join! for concurrent queries; adding a CRM count adds ~1ms latency.",
+        "The web crate accesses CRM through gateway services (GatewayState.services.crm), not by depending on the crm crate directly.",
+        "i18n uses per-namespace locale files in locales/en|fr|zh/*.js registered via i18n.js.",
+        "SqliteCrmStore.list_filtered does NOT escape % and _ wildcards in LIKE search — cosmetic issue, low severity in single-tenant context."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4516,
+          "end_line": 4516,
+          "finding": "All 14 CRM RPC methods registered here: crm.contacts.list/get/upsert/delete, crm.channels.list/upsert/delete, crm.matters.list/get/upsert/delete, crm.interactions.list/record/delete"
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "list_filtered() passes user search input directly into LIKE '%term%' without escaping % or _ wildcards"
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "finding": "LiveCrmService.contact_to_json() deliberately calls expose_secret() on email/phone for JSON serialization — correct for authenticated single-tenant access"
+        }
+      ],
+      "workflow": [
+        "LINEAR_API_KEY is not available as an env var inside the agent sandbox — had to use Python with requests library to call the Linear API directly.",
+        "The plan-ceo-review skill produced two conflicting reviews (CEO recommended REST, Eng corrected to RPC). The second pass correctly used codebase exploration to override the first pass's wrong assumption.",
+        "Stokowski lifecycle context is injected via AUTO-GENERATED comment blocks in the prompt — these carry state (run number, prior workpad content, issue URL) across agent sessions.",
+        "Plans are persisted to stokowski-workspaces/\u003cissue-id\u003e/plans/ and committed to git, serving as durable cross-session artifacts."
+      ]
+    },
+    "friction": [
+      "LINEAR_API_KEY not available in the sandbox environment — required fallback to Python requests instead of a CLI tool.",
+      "The initial CEO review (v1) recommended ~15 new REST handlers — a significant scope error that required a full eng review to correct. The CEO review skill did not explore the codebase before making architecture recommendations.",
+      "Two separate review files were produced (CHA-19-ceo-review.md and CHA-19-ceo-review-v2.md) — the v1 file is now stale/misleading but was not deleted."
+    ],
+    "open_items": [
+      "E2E test implementation for CRM tab — deferred to separate ticket, requires gateway running with CRM feature enabled",
+      "Optimistic locking for concurrent CRM updates — last-write-wins is a known gap, deferred as acceptable for v1 single-user",
+      "LIKE wildcard escaping in SqliteCrmStore.list_filtered — % and _ pass through unescaped, P3 cosmetic issue deferred",
+      "Contact count optimization — NavCounts loads all contacts to count them; should use SELECT COUNT(*) at 1000+ contacts, deferred",
+      "Matter kanban drag-and-drop view — Phase 2 feature",
+      "Contact merge/dedup — Phase 2 feature",
+      "PII reveal-on-click masking — polish item, deferred from v1",
+      "French and Chinese translations — locale files will be created with English fallback strings; proper translations are a separate i18n pass",
+      "Stale CHA-19-ceo-review.md (v1) in plans/ — contains wrong REST architecture recommendation, should be deleted or clearly marked superseded"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T05:11:57.215826Z",
+    "agent_lines": 0,
+    "human_added": 454,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 454,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-19/79ea079b-820b-41a0-bf00-0660f3c228d7.jsonl"
+}

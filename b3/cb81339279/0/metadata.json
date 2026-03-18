@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.9",
+  "checkpoint_id": "b3cb81339279",
+  "session_id": "8e22a706-50be-4d72-8c43-a375cd1b761a",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T21:54:58.58573Z",
+  "branch": "whatsapp-fail",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/node-host/src/service.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "895b8354d307",
+  "token_usage": {
+    "input_tokens": 259,
+    "cache_creation_tokens": 636190,
+    "cache_read_tokens": 23608750,
+    "output_tokens": 6249,
+    "api_call_count": 230
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-10T21:54:57.652416Z",
+    "agent_lines": 11,
+    "human_added": 117,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 128,
+    "agent_percentage": 8.59375
+  }
+}

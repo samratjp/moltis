@@ -1,0 +1,77 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "4e7d4640a601",
+  "session_id": "868fe717-595f-4c67-8c1b-9f42754568f9",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T02:02:48.44195Z",
+  "branch": "CHA-15-crm-gateway-integration",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/channel_events.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "641797b088c1",
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 50201,
+    "cache_read_tokens": 367189,
+    "output_tokens": 2806,
+    "api_call_count": 9
+  },
+  "summary": {
+    "intent": "Wire the existing CRM subsystem into the gateway's channel event pipeline so that inbound messages automatically create/update contacts and log interactions.",
+    "outcome": "The QA phase was initiated; a minor dead-code cleanup (unused `args` variable in `channel_events.rs`) was committed, but the actual CRM integration work had not yet been implemented — the session ended at the pre-QA cleanup stage.",
+    "learnings": {
+      "repo": [
+        "CRM subsystem is fully built at storage/RPC layers (CrmStore trait, SqliteCrmStore, MemoryCrmStore, 16 RPC methods, RetentionEngine) but has zero integration with channel_events.rs",
+        "GatewayChannelEventSink uses Arc\u003ctokio::sync::OnceCell\u003cArc\u003cGatewayState\u003e\u003e\u003e for state access — CRM store is NOT in GatewayState, only in LiveCrmService",
+        "CrmService trait mandates JSON (serde_json::Value) round-trips; for internal gateway use, CrmStore trait should be used directly to avoid overhead",
+        "The auto_create_contacts config field in CrmConfig is defined but never read anywhere in the codebase",
+        "channel_webhook_dedup.rs handles HTTP-level dedup upstream; CRM interaction dedup is not implemented and accepted as duplicate-tolerant",
+        "Project uses raw epoch math for timestamps (SystemTime::now()) rather than the time crate",
+        "SQLite WAL mode is used, enabling concurrent reads during CRM write operations"
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/channel_events.rs",
+          "finding": "GatewayChannelEventSink is the hook point for CRM integration — add Option\u003cArc\u003cdyn CrmStore\u003e\u003e and CrmConfig fields here, gate with #[cfg(feature = \"crm\")], and spawn async CRM work inside emit() for InboundMessage events"
+        },
+        {
+          "path": "crates/gateway/src/server.rs",
+          "finding": "Must pass Arc\u003cdyn CrmStore\u003e and CrmConfig to GatewayChannelEventSink constructor; reuse the crm_store already created for LiveCrmService"
+        }
+      ],
+      "workflow": [
+        "Headless orchestration sessions use a Linear comment as a persistent workpad — update at each milestone with status, decisions, and next steps",
+        "Session startup protocol: run type-check and tests before any implementation to verify clean baseline",
+        "The QA skill snoozes gstack auto-upgrades when running headlessly to avoid interactive prompts",
+        "Uncommitted changes (even minor cleanup) should be committed before running QA to ensure a clean diff baseline"
+      ]
+    },
+    "friction": [
+      "Working tree had uncommitted dead-code changes (unused `args` variable) that needed to be cleaned up before QA could proceed cleanly",
+      "CrmStore is buried inside LiveCrmService and not accessible from GatewayState — requires threading it through to GatewayChannelEventSink at construction time"
+    ],
+    "open_items": [
+      "Contact merge/dedup — same person on multiple channels creates separate contacts; needs future ticket",
+      "Outbound interaction logging — only inbound messages will create interactions; outbound is deferred",
+      "CRM Web UI — contact timeline in web dashboard; separate ticket needed",
+      "GDPR/privacy documentation — auto-created contact records from inbound messages have privacy implications; needs documentation",
+      "Matter auto-creation from messages — deferred, manual only for now",
+      "Contact enrichment (AI-based name/email extraction) — deferred",
+      "Interaction dedup — accepted as duplicate-tolerant; retention engine handles growth",
+      "crm.contacts.auto_created, crm.interactions.logged, crm.errors metrics — planned but gated behind #[cfg(feature = \"metrics\")]",
+      "The actual CRM integration implementation (handle_crm_inbound helper, emit() hook, server.rs wiring, tests) — session ended before implementation began"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T02:02:25.37508Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-15/868fe717-595f-4c67-8c1b-9f42754568f9.jsonl"
+}
