@@ -1,0 +1,104 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b529b4160008",
+  "session_id": "85170bab-66e2-4d94-971c-98f646e1374b",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T05:47:46.905299Z",
+  "branch": "CHA-16-rpc-crm-contacts",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "plans/2026-03-17-ceo-review-crm-contacts-rpc.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "018a8218353c",
+  "token_usage": {
+    "input_tokens": 111,
+    "cache_creation_tokens": 339755,
+    "cache_read_tokens": 6787323,
+    "output_tokens": 31727,
+    "api_call_count": 78
+  },
+  "summary": {
+    "intent": "Implement additional RPC methods for crm.contacts.* in a Rust gateway service, specifically exposing filtered listing, external ID lookup, and composite contact+channels view that existed in the store layer but weren't wired to RPC.",
+    "outcome": "Successfully added 3 new RPC methods (crm.contacts.list with filter params, crm.contacts.getByExternal, crm.contacts.getWithChannels), updated the CrmService trait and LiveCrmService impl, registered methods in the RPC registry with auth scopes, added 13 new tests (26 total passing), and opened PR #13.",
+    "learnings": {
+      "repo": [
+        "The CRM stack follows a strict layered pattern: CrmStore trait → SqliteCrmStore/MemoryCrmStore → CrmService trait → LiveCrmService/NoopCrmService → RPC registration in services.rs → auth scopes in mod.rs",
+        "RPC methods are registered in crates/gateway/src/methods/services.rs and auth scopes (READ_METHODS/WRITE_METHODS) are declared in crates/gateway/src/methods/mod.rs",
+        "The project requires nightly rustfmt and clippy must be run without --all-features on macOS (no nvcc)",
+        "NoopCrmService must be updated alongside the CrmService trait whenever new methods are added",
+        "CrmStore already had list_filtered(stage, search, offset, limit), get_by_external(source, external_id), and get_with_channels(id) — the service and RPC layers were lagging behind the store",
+        "Helper functions contact_to_json, channel_to_json, require_str, parse_contact already existed for reuse in new method implementations"
+      ],
+      "code": [
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "line": 1249,
+          "end_line": 1269,
+          "finding": "CrmService trait definition — list_contacts() had no params, breaking the pattern of all other methods that take params: Value"
+        },
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "line": 1271,
+          "finding": "NoopCrmService must be updated whenever CrmService trait changes"
+        },
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4514,
+          "end_line": 4709,
+          "finding": "All 15 CRM RPC method registrations live in this block"
+        },
+        {
+          "path": "crates/gateway/src/methods/mod.rs",
+          "line": 90,
+          "end_line": 96,
+          "finding": "READ_METHODS for CRM contacts auth scope"
+        },
+        {
+          "path": "crates/gateway/src/methods/mod.rs",
+          "line": 221,
+          "end_line": 228,
+          "finding": "WRITE_METHODS for CRM contacts auth scope"
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 362,
+          "end_line": 657,
+          "finding": "All 13 original CRM service tests use MemoryCrmStore — the pattern to follow for new tests"
+        }
+      ],
+      "workflow": [
+        "The Stokowski orchestration system runs CEO review → eng review → implement as separate lifecycle states, each with its own skill invocation",
+        "Linear is used as a workpad (persistent comment updated at each milestone) rather than a separate planning tool",
+        "Running cargo clippy before tests catches signature mismatch errors faster than running full test suite",
+        "The CEO review skill asked an interactive question (mode selection) which violated the headless agent ground rules — eng review correctly proceeded autonomously"
+      ]
+    },
+    "friction": [
+      "The CEO review agent asked an interactive AskUserQuestion about mode selection despite the ground rules explicitly saying 'no human in the loop — do not ask questions or wait for input'",
+      "Two existing tests broke when list_contacts() signature changed to list_contacts(params: Value) — required a second edit pass to fix callers",
+      "Formatting issues (rustfmt) were only caught after clippy, requiring an extra format-apply step",
+      "The Linear workpad comment posting via GraphQL failed, fell back to posting on GitHub PR instead — Linear MCP integration appears unreliable or misconfigured",
+      "The implementation prompt had blank fields for issue title, status, and labels (template variables not substituted), reducing context quality"
+    ],
+    "open_items": [
+      "crm.channels.getByExternal — store has get_channel_by_external() but not wired to RPC (out of scope for crm.contacts.* namespace)",
+      "crm.matters.listFiltered and crm.matters.listByContact — store methods exist but not exposed (out of scope)",
+      "list_contacts with no params still returns ALL rows (unbounded) — decision 6B deferred default limit to avoid breaking callers; should add default limit in future",
+      "list_matters() also has no params and same scalability concern as list_contacts — noted as follow-up",
+      "Structured CRM error codes — store_err converts all errors to generic string messages with no error code differentiation (not-found vs constraint vs db)",
+      "Bulk operations (batch upsert/delete), contact merge/dedup, real-time CRM event subscriptions, fuzzy search — all deferred as future features",
+      "Linear MCP workpad integration needs investigation — fallback to GitHub PR comment is a workaround not a fix"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T05:47:16.676637Z",
+    "agent_lines": 541,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 541,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-16/85170bab-66e2-4d94-971c-98f646e1374b.jsonl"
+}
