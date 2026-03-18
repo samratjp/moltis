@@ -619,6 +619,53 @@ mod tests {
     }
 
     #[test]
+    fn crm_read_methods_require_read() {
+        for method in &[
+            "crm.contacts.list",
+            "crm.contacts.get",
+            "crm.contacts.getByExternal",
+            "crm.contacts.getWithChannels",
+            "crm.channels.list",
+            "crm.matters.list",
+            "crm.matters.get",
+            "crm.interactions.list",
+            "crm.interactions.get",
+        ] {
+            assert!(
+                authorize_method(method, "operator", &scopes(&["operator.read"])).is_none(),
+                "read scope should authorize {method}"
+            );
+            assert_error_code(
+                authorize_method(method, "operator", &scopes(&[])),
+                "UNAUTHORIZED",
+            );
+        }
+    }
+
+    #[test]
+    fn crm_write_methods_require_write() {
+        for method in &[
+            "crm.contacts.upsert",
+            "crm.contacts.delete",
+            "crm.channels.upsert",
+            "crm.channels.delete",
+            "crm.matters.upsert",
+            "crm.matters.delete",
+            "crm.interactions.upsert",
+            "crm.interactions.delete",
+        ] {
+            assert!(
+                authorize_method(method, "operator", &scopes(&["operator.write"])).is_none(),
+                "write scope should authorize {method}"
+            );
+            assert_error_code(
+                authorize_method(method, "operator", &scopes(&["operator.read"])),
+                "UNAUTHORIZED",
+            );
+        }
+    }
+
+    #[test]
     fn cron_read_methods_require_read() {
         for method in &["cron.list", "cron.status", "cron.runs"] {
             assert!(
