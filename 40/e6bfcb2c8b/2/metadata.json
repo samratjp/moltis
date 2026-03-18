@@ -1,0 +1,103 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "40e6bfcb2c8b",
+  "session_id": "515d65f0-232d-4229-8283-b420f7cf9c3f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T07:20:26.14766Z",
+  "branch": "CHA-35-follow-up-cron-registration",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/crm/Cargo.toml",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/config/src/schema.rs",
+    "crates/config/src/validate.rs",
+    "crates/config/src/template.rs",
+    "crates/gateway/src/follow_up.rs",
+    "crates/gateway/src/lib.rs",
+    "crates/gateway/src/server.rs",
+    "crates/gateway/src/state.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "032e871337fd",
+  "token_usage": {
+    "input_tokens": 66,
+    "cache_creation_tokens": 108429,
+    "cache_read_tokens": 5503223,
+    "output_tokens": 25705,
+    "api_call_count": 60
+  },
+  "summary": {
+    "intent": "Implement CHA-35: automated cron-based follow-up engine that periodically queries the CRM for stale contacts and fires an agent turn to notify the user, mirroring the existing heartbeat job registration pattern.",
+    "outcome": "All 10 target files were modified or created (config schema, validation, template, CRM store trait + SQLite impl, gateway follow_up module, server wiring, and state struct). Compilation was initiated but the transcript ends before confirming a clean build, open PR, or passing test suite.",
+    "learnings": {
+      "repo": [
+        "Heartbeat job registration at server.rs:4925-5035 is the canonical pattern for system cron jobs: idempotent upsert with a fixed __name__ ID, config-driven enable/disable.",
+        "CRM PII fields (email, phone) are wrapped in Secret\u003cString\u003e; the agreed convention is to never expose them to LLM prompts — use a StaleContactSummary projection type instead.",
+        "The data retention engine (retention.rs) is a detached tokio::spawn loop, NOT a cron job — contrasts with heartbeat/follow-up which use CronService.",
+        "GatewayInner in state.rs holds per-feature config copies (e.g. heartbeat_config); follow_up_config was added following the same field pattern.",
+        "CronService uses CronSchedule::Cron { expr } for calendar-aware schedules vs CronSchedule::Every { every_ms } used by heartbeat.",
+        "The on_agent_turn callback detects special sessions via SessionTarget::Named; a shared const for '__follow_up__' avoids typo risk between registration and detection sites.",
+        "DRY extraction of a register_system_job() helper was explicitly deferred until a third system job exists (currently heartbeat + follow_up = two instances)."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/server.rs",
+          "line": 4925,
+          "end_line": 5035,
+          "finding": "Heartbeat job registration block — exact pattern copied for follow-up registration."
+        },
+        {
+          "path": "crates/gateway/src/state.rs",
+          "finding": "GatewayInner struct holds heartbeat_config; follow_up_config added alongside it."
+        },
+        {
+          "path": "crates/crm/src/store.rs",
+          "finding": "CrmStore trait extended with contacts_needing_followup(stale_days, limit) returning Vec\u003cStaleContactInfo\u003e; MemoryStore gets a default fallback impl via pagination."
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "SQL impl uses a single LEFT JOIN query to find contacts with no recent interaction, avoiding N+1. A local row type was added for sqlx mapping."
+        },
+        {
+          "path": "crates/gateway/src/follow_up.rs",
+          "finding": "New module: StaleContactSummary (PII-safe projection), build_followup_prompt(), and DEFAULT_STALE_DAYS constant shared between registration and detection."
+        }
+      ],
+      "workflow": [
+        "The agent ran cargo check asynchronously at the end but the transcript ends before results were available — build verification was incomplete.",
+        "Multiple sequential server.rs reads were required to find exact insertion points, suggesting large files benefit from targeted grep-then-read rather than full reads.",
+        "The agent attempted to use ToolSearch and TaskOutput to retrieve the background cargo check result, indicating background tasks need explicit polling hooks.",
+        "Linear comments served as a persistent workpad across investigation and implementation stages, carrying architecture decisions (prompt enrichment vs agent tools, stale_days heuristic, notify-only mode, PII exclusion) forward into implementation."
+      ]
+    },
+    "friction": [
+      "cargo check was launched as a background task but results were not confirmed before the session ended — build status is unknown.",
+      "server.rs is very large (5000+ lines), requiring multiple partial reads with offset/limit to locate exact insertion points for the follow-up job registration and on_agent_turn enrichment blocks.",
+      "The crm crate needed a new `time` dependency added to Cargo.toml before the stale contact query could use timestamp arithmetic — discovered mid-implementation.",
+      "The GatewayInner state struct had to be found via grep before follow_up_config could be added, as it wasn't immediately obvious from the server.rs entry point.",
+      "No PR was created and no tests were run before the session ended; the quality bar checklist (tests pass, no type errors, no lint errors) was not verified."
+    ],
+    "open_items": [
+      "Confirm cargo check / cargo test passes cleanly — build verification was incomplete at session end.",
+      "Create the GitHub PR and link it to Linear issue CHA-35.",
+      "Write the 14 unit/integration tests identified in the engineering review (T1-T14), especially T8 (PII exclusion — marked CRITICAL).",
+      "Stage-aware follow-up thresholds (different stale_days per contact stage) — explicitly deferred to a future PR.",
+      "Autonomous outreach mode — deferred pending product/legal decision.",
+      "Follow-up outcome tracking (new CRM interaction types) — deferred.",
+      "FOLLOW_UP.md prompt file (mirroring HEARTBEAT.md) — nice-to-have, not implemented.",
+      "Extract register_system_job() helper when a third system cron job is added (currently two: heartbeat + follow-up).",
+      "Consider migrating the data retention engine from tokio::spawn to a CronService job — noted as out of scope but flagged as technical debt."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T07:19:48.082519Z",
+    "agent_lines": 749,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 750,
+    "agent_percentage": 99.86666666666667
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-35/515d65f0-232d-4229-8283-b420f7cf9c3f.jsonl"
+}
