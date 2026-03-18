@@ -3,7 +3,7 @@
   "checkpoint_id": "4e7d4640a601",
   "strategy": "manual-commit",
   "branch": "CHA-15-crm-gateway-integration",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "crates/gateway/src/channel_events.rs"
   ],
@@ -21,13 +21,20 @@
       "context": "/4e/7d4640a601/1/context.md",
       "content_hash": "/4e/7d4640a601/1/content_hash.txt",
       "prompt": "/4e/7d4640a601/1/prompt.txt"
+    },
+    {
+      "metadata": "/4e/7d4640a601/2/metadata.json",
+      "transcript": "/4e/7d4640a601/2/full.jsonl",
+      "context": "/4e/7d4640a601/2/context.md",
+      "content_hash": "/4e/7d4640a601/2/content_hash.txt",
+      "prompt": "/4e/7d4640a601/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 183,
-    "cache_creation_tokens": 592565,
-    "cache_read_tokens": 10304596,
-    "output_tokens": 46101,
-    "api_call_count": 126
+    "input_tokens": 205,
+    "cache_creation_tokens": 654089,
+    "cache_read_tokens": 10953514,
+    "output_tokens": 49507,
+    "api_call_count": 139
   }
 }
