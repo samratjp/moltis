@@ -1,0 +1,93 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "015ed9f487a8",
+  "session_id": "85170bab-66e2-4d94-971c-98f646e1374b",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T04:35:28.320303Z",
+  "branch": "CHA-16-rpc-crm-contacts",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "crates/gateway/src/methods/mod.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "018a8218353c",
+  "token_usage": {
+    "input_tokens": 111,
+    "cache_creation_tokens": 339755,
+    "cache_read_tokens": 6787323,
+    "output_tokens": 31727,
+    "api_call_count": 78
+  },
+  "summary": {
+    "intent": "Implement CHA-16: expose additional CRM contact RPC methods (filtered list, getByExternal, getWithChannels) that were already supported by the store layer but not wired up to the RPC surface.",
+    "outcome": "Successfully extended the CrmService trait and LiveCrmService with 3 new/updated methods, registered 2 new RPC endpoints (crm.contacts.getByExternal, crm.contacts.getWithChannels), updated crm.contacts.list to accept filter params, added 13 new tests (26 total passing), and opened PR #13.",
+    "learnings": {
+      "repo": [
+        "Basic crm.contacts.* CRUD (list, get, upsert, delete) was already fully implemented before this ticket — the issue title was misleading about what remained",
+        "CrmStore trait has 21 methods but CrmService only exposed 15; the gap was list_filtered, get_by_external, get_with_channels, get_channel_by_external, list_matters_filtered, list_matters_by_contact",
+        "Auth scoping uses READ_METHODS/WRITE_METHODS string sets in crates/gateway/src/methods/mod.rs — new read methods must be added there",
+        "RPC method registration follows a consistent pattern in crates/gateway/src/methods/services.rs — each method dispatches to a CrmService trait method",
+        "NoopCrmService must be updated in service-traits whenever the CrmService trait gains new methods",
+        "macOS build environment lacks nvcc, so clippy must be run without --all-features",
+        "Project uses nightly rustfmt"
+      ],
+      "code": [
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "line": 1249,
+          "end_line": 1269,
+          "finding": "CrmService trait definition — add new contact methods here; NoopCrmService follows immediately after at line 1271"
+        },
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "line": 4514,
+          "end_line": 4709,
+          "finding": "All 15 CRM RPC method registrations live in this range"
+        },
+        {
+          "path": "crates/gateway/src/methods/mod.rs",
+          "line": 90,
+          "end_line": 96,
+          "finding": "READ_METHODS set for CRM contacts; line 221-228 for other CRM scopes"
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "line": 362,
+          "end_line": 657,
+          "finding": "13 existing service-level tests using MemoryCrmStore — new tests follow this pattern"
+        }
+      ],
+      "workflow": [
+        "CEO review and eng review phases both discovered the same gap independently — the review pipeline adds value by identifying what's already done before scoping new work",
+        "CEO review hit a blocker by asking a question (AskUserQuestion) in what was supposed to be a headless autonomous session — the skill should not pause for input",
+        "Running compile checks as background tasks while starting implementation in parallel is effective for reducing wall-clock time",
+        "Changing a zero-argument trait method signature (list_contacts → list_contacts(params: Value)) breaks existing test call sites — need to grep for all callers before committing"
+      ]
+    },
+    "friction": [
+      "CEO review agent incorrectly used AskUserQuestion in an autonomous/headless session, stalling the pipeline and requiring a manual 'continue' nudge",
+      "The implementation prompt had empty template fields (issue title, status, labels) suggesting a Stokowski templating bug where variables weren't substituted",
+      "Two existing tests called list_contacts() with no args and broke after the signature change — required a second fix pass",
+      "PR creation required two attempts (first gh pr create invocation failed, needed explicit --head/--base flags)",
+      "Linear workpad posting failed via GraphQL and GitHub issue API — ultimately posted to the PR instead as a fallback"
+    ],
+    "open_items": [
+      "crm.channels.getByExternal not wired — store supports get_channel_by_external but it's out of crm.contacts.* namespace scope",
+      "crm.matters.listFiltered and crm.matters.listByContact not wired — explicitly deferred as follow-up tickets",
+      "list_contacts with no params returns ALL contacts with no cap — potential scalability issue for large CRMs; option 6B (backward compat) was chosen, but a default limit should be added before production scale",
+      "store_err loses error type information — all CRM errors become generic string errors; structured CRM error codes would improve client-side handling",
+      "Bulk operations (batch upsert/delete), contact merge/dedup, real-time CRM event subscriptions, and fuzzy search all deferred as future features",
+      "TODOS.md had 0 items added — deferred work should likely be tracked there or in follow-up Linear tickets"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T04:34:57.860025Z",
+    "agent_lines": 0,
+    "human_added": 47,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 47,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-16/85170bab-66e2-4d94-971c-98f646e1374b.jsonl"
+}

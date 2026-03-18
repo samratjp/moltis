@@ -1,0 +1,62 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b529b4160008",
+  "session_id": "8f8aa4b5-39c1-4c01-8ab9-5ad557d55594",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T05:47:59.946255Z",
+  "branch": "CHA-16-rpc-crm-contacts",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "plans/2026-03-17-ceo-review-crm-contacts-rpc.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "e156d01e6cb1",
+  "checkpoint_transcript_start": 99,
+  "transcript_lines_at_start": 99,
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 4311,
+    "cache_read_tokens": 601260,
+    "output_tokens": 3996,
+    "api_call_count": 9
+  },
+  "summary": {
+    "intent": "Complete QA for CHA-16 covering new crm.contacts.* RPC methods (list, getByExternal, getWithChannels) and post results to Linear.",
+    "outcome": "QA passed with health score 85→95. One medium auth coverage gap was found and fixed (commit 575adf1). Results posted to GitHub PR #13 instead of Linear due to missing auth token.",
+    "learnings": {
+      "repo": [
+        "Auth tests are organized per method group (cron, hooks, identity, senders) — new method groups need explicit read/write scope tests added to the auth test suite.",
+        "CRM RPC methods total 17 across crm.* namespace; all must be covered in READ_METHODS or equivalent auth registry.",
+        "NoopCrmService stubs exist alongside the CrmService trait — both need updating when adding new RPC methods.",
+        "Project uses nightly Rust toolchain (clippy and rustfmt run with nightly)."
+      ],
+      "code": [
+        {
+          "path": "plans/2026-03-17-ceo-review-crm-contacts-rpc.md",
+          "finding": "QA plan file was modified as part of the session to record outcomes."
+        }
+      ],
+      "workflow": [
+        "QA reports are written to .gstack/qa-reports/ within the workspace directory.",
+        "Linear auth token is not available in the shell environment — fallback is to post QA results as a GitHub PR comment.",
+        "Diff-aware QA scoping: only methods changed in the diff are tested, not the full RPC surface."
+      ]
+    },
+    "friction": [
+      "Linear auth token not present in environment, blocking direct Linear comment posting — had to fall back to GitHub PR #13."
+    ],
+    "open_items": [
+      "Linear QA comment was not posted; should be posted manually or the Linear token added to the environment for future sessions."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T05:47:48.2391Z",
+    "agent_lines": 541,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 541,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-16/8f8aa4b5-39c1-4c01-8ab9-5ad557d55594.jsonl"
+}
