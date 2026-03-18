@@ -8,6 +8,25 @@ use crate::{
     },
 };
 
+/// PII-safe summary of a contact that has not been interacted with recently.
+///
+/// Contains name, stage, last interaction timestamp, and latest matter title.
+/// Intentionally omits email and phone to prevent PII leakage into LLM prompts.
+#[derive(Debug, Clone)]
+pub struct StaleContactInfo {
+    /// The contact's unique identifier.
+    pub contact_id: String,
+    /// The contact's display name.
+    pub contact_name: String,
+    /// The contact's current lifecycle stage.
+    pub stage: ContactStage,
+    /// Epoch milliseconds of the most recent interaction, or `None` if there
+    /// has never been an interaction with this contact.
+    pub last_interaction_at: Option<u64>,
+    /// Title of the most recently updated matter for this contact, if any.
+    pub matter_title: Option<String>,
+}
+
 /// Persistence trait for CRM data.
 ///
 /// Provides CRUD operations for [`Contact`], [`Matter`], [`Interaction`], and
@@ -126,6 +145,60 @@ pub trait CrmStore: Send + Sync {
     /// `cutoff_epoch_ms`. Returns the number of rows deleted.
     #[must_use]
     async fn delete_interactions_before(&self, cutoff_epoch_ms: i64) -> Result<u64>;
+
+    // ── Follow-up queries ─────────────────────────────────────────────────────
+
+    /// Return contacts that have had no interaction in the last `stale_days` days,
+    /// along with their most recent matter title (if any). Results are ordered by
+    /// `last_interaction_at` ascending (most stale first) and capped at `limit`.
+    ///
+    /// Contacts with no interactions at all are always included.
+    ///
+    /// The default implementation performs N+1 queries and is suitable for the
+    /// in-memory store used in tests. Production [`SqliteCrmStore`] overrides this
+    /// with a single efficient JOIN query.
+    async fn contacts_needing_followup(
+        &self,
+        stale_days: u64,
+        limit: usize,
+    ) -> Result<Vec<StaleContactInfo>> {
+        use time::OffsetDateTime;
+        let now = OffsetDateTime::now_utc();
+        let cutoff = now - time::Duration::days(stale_days as i64);
+        let cutoff_ms = cutoff.unix_timestamp() * 1_000;
+
+        let contacts = self.list().await?;
+        let mut results: Vec<StaleContactInfo> = Vec::new();
+
+        for contact in contacts {
+            let interactions = self.list_interactions_by_contact(&contact.id).await?;
+            let last_interaction_at = interactions.iter().map(|i| i.created_at).max();
+
+            let is_stale = match last_interaction_at {
+                Some(ts_ms) => (ts_ms as i64) < cutoff_ms,
+                None => true,
+            };
+
+            if !is_stale {
+                continue;
+            }
+
+            let matters = self.list_matters_by_contact(&contact.id).await?;
+            let matter_title = matters.into_iter().next().map(|m| m.title);
+
+            results.push(StaleContactInfo {
+                contact_id: contact.id,
+                contact_name: contact.name,
+                stage: contact.stage,
+                last_interaction_at,
+                matter_title,
+            });
+        }
+
+        results.sort_by_key(|c| c.last_interaction_at);
+        results.truncate(limit);
+        Ok(results)
+    }
 }
 
 pub use crate::{store_memory::MemoryCrmStore, store_sqlite::SqliteCrmStore};

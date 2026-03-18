@@ -530,6 +530,22 @@ fn build_schema_map() -> KnownKeys {
             ])),
         ),
         (
+            "follow_up",
+            Struct(HashMap::from([
+                ("enabled", Leaf),
+                ("schedule", Leaf),
+                ("stale_days", Leaf),
+                ("limit", Leaf),
+                ("model", Leaf),
+                ("prompt", Leaf),
+                ("deliver", Leaf),
+                ("channel", Leaf),
+                ("to", Leaf),
+                ("sandbox_enabled", Leaf),
+                ("sandbox_image", Leaf),
+            ])),
+        ),
+        (
             "data_retention",
             Struct(HashMap::from([
                 ("enabled", Leaf),
@@ -2720,6 +2736,101 @@ enabledd = true
         assert!(
             unknown.is_some(),
             "expected unknown-field diagnostic for 'crm.enabledd'"
+        );
+    }
+
+    // ── follow_up tests ───────────────────────────────────────────────────────
+
+    #[test]
+    fn follow_up_config_defaults() {
+        let config = MoltisConfig::default();
+        assert!(!config.follow_up.enabled);
+        assert_eq!(config.follow_up.schedule, "0 9 * * 1-5");
+        assert_eq!(config.follow_up.stale_days, 14);
+        assert_eq!(config.follow_up.limit, 50);
+        assert!(config.follow_up.model.is_none());
+        assert!(config.follow_up.prompt.is_none());
+        assert!(!config.follow_up.deliver);
+        assert!(config.follow_up.channel.is_none());
+        assert!(config.follow_up.to.is_none());
+        assert!(config.follow_up.sandbox_enabled);
+        assert!(config.follow_up.sandbox_image.is_none());
+    }
+
+    #[test]
+    fn follow_up_config_serde_roundtrip() {
+        let toml = r#"
+[follow_up]
+enabled = true
+schedule = "0 8 * * *"
+stale_days = 30
+limit = 25
+model = "anthropic/claude-haiku-4-5"
+prompt = "Check stale contacts."
+deliver = true
+channel = "my-bot"
+to = "123456789"
+sandbox_enabled = false
+sandbox_image = "custom:latest"
+"#;
+        let result = validate_toml_str(toml);
+        assert!(
+            !result.has_errors(),
+            "valid follow_up config should not produce errors, got: {:?}",
+            result.diagnostics
+        );
+        let config = toml::from_str::<MoltisConfig>(toml).unwrap();
+        assert!(config.follow_up.enabled);
+        assert_eq!(config.follow_up.schedule, "0 8 * * *");
+        assert_eq!(config.follow_up.stale_days, 30);
+        assert_eq!(config.follow_up.limit, 25);
+        assert_eq!(
+            config.follow_up.model.as_deref(),
+            Some("anthropic/claude-haiku-4-5")
+        );
+        assert_eq!(
+            config.follow_up.prompt.as_deref(),
+            Some("Check stale contacts.")
+        );
+        assert!(config.follow_up.deliver);
+        assert_eq!(config.follow_up.channel.as_deref(), Some("my-bot"));
+        assert_eq!(config.follow_up.to.as_deref(), Some("123456789"));
+        assert!(!config.follow_up.sandbox_enabled);
+        assert_eq!(
+            config.follow_up.sandbox_image.as_deref(),
+            Some("custom:latest")
+        );
+    }
+
+    #[test]
+    fn schema_map_includes_follow_up_fields() {
+        // Ensure the follow_up section is recognised — unknown fields should be flagged.
+        let toml_unknown = r#"
+[follow_up]
+enablled = true
+"#;
+        let result = validate_toml_str(toml_unknown);
+        let unknown = result
+            .diagnostics
+            .iter()
+            .find(|d| d.category == "unknown-field" && d.path == "follow_up.enablled");
+        assert!(
+            unknown.is_some(),
+            "expected unknown-field diagnostic for 'follow_up.enablled'"
+        );
+
+        // And valid fields should pass cleanly.
+        let toml_valid = r#"
+[follow_up]
+enabled = true
+schedule = "0 9 * * 1-5"
+stale_days = 14
+"#;
+        let result_valid = validate_toml_str(toml_valid);
+        assert!(
+            !result_valid.has_errors(),
+            "valid follow_up fields should not error, got: {:?}",
+            result_valid.diagnostics
         );
     }
 }

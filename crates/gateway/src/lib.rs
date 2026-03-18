@@ -30,6 +30,8 @@ pub mod chat_error;
 pub mod crm_service;
 pub mod cron;
 pub mod env_routes;
+#[cfg(feature = "crm")]
+pub mod follow_up;
 #[cfg(feature = "graphql")]
 pub mod graphql_routes;
 #[cfg(feature = "local-llm")]

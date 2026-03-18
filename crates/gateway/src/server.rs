@@ -1876,18 +1876,23 @@ pub async fn prepare_gateway(
         .expect("failed to run crm migrations");
 
     // Wire live CRM service when the feature is enabled and CRM is configured.
-    // Also hoist the store reference so it can be passed to the channel event sink below.
+    // Also hoist the store reference so it can be passed to the channel event sink below,
+    // and a separate reference for the follow-up engine's on_agent_turn callback.
     #[cfg(feature = "crm")]
-    let crm_store_for_sink: Option<Arc<dyn moltis_crm::CrmStore>> = {
+    let (crm_store_for_sink, crm_store_for_followup): (
+        Option<Arc<dyn moltis_crm::CrmStore>>,
+        Option<Arc<dyn moltis_crm::store::CrmStore>>,
+    ) = {
         if config.crm.enabled {
             let crm_store = Arc::new(moltis_crm::SqliteCrmStore::new(db_pool.clone()));
             let crm_svc = Arc::new(crate::crm_service::LiveCrmService::new(Arc::clone(
                 &crm_store,
             )));
             services = services.with_crm(crm_svc as Arc<dyn crate::services::CrmService>);
-            Some(crm_store as Arc<dyn moltis_crm::CrmStore>)
+            let store: Arc<dyn moltis_crm::CrmStore> = crm_store;
+            (Some(Arc::clone(&store)), Some(store))
         } else {
-            None
+            (None, None)
         }
     };
 
@@ -2202,9 +2207,13 @@ pub async fn prepare_gateway(
     // Agent turn: run an LLM turn in a session determined by the job's session_target.
     let agent_state = Arc::clone(&deferred_state);
     let agent_events_queue = Arc::clone(&events_queue);
+    #[cfg(feature = "crm")]
+    let agent_crm_store = crm_store_for_followup;
     let on_agent_turn: moltis_cron::service::AgentTurnFn = Arc::new(move |req| {
         let st = Arc::clone(&agent_state);
         let eq = Arc::clone(&agent_events_queue);
+        #[cfg(feature = "crm")]
+        let crm_store = agent_crm_store.clone();
         Box::pin(async move {
             let state = st
                 .get()
@@ -2217,6 +2226,14 @@ pub async fn prepare_gateway(
                 &req.session_target,
                 moltis_cron::types::SessionTarget::Named(name) if name == "heartbeat"
             );
+            #[cfg(feature = "crm")]
+            let is_followup_turn = matches!(
+                &req.session_target,
+                moltis_cron::types::SessionTarget::Named(name)
+                    if name == crate::follow_up::FOLLOW_UP_SESSION_NAME
+            );
+            #[cfg(not(feature = "crm"))]
+            let is_followup_turn = false;
             // Check for pending system events (used to bypass the empty-content guard).
             let has_pending_events = is_heartbeat_turn && !eq.is_empty().await;
             if is_heartbeat_turn && !has_pending_events {
@@ -2281,6 +2298,49 @@ pub async fn prepare_gateway(
                     );
                     moltis_cron::heartbeat::build_event_enriched_prompt(&events, &req.message)
                 }
+            } else if is_followup_turn {
+                #[cfg(feature = "crm")]
+                {
+                    use crate::follow_up::{
+                        MAX_CONTACTS_IN_PROMPT, StaleContactSummary, build_followup_prompt,
+                    };
+                    let fu_cfg = state.inner.read().await.follow_up_config.clone();
+                    let stale_days = fu_cfg.stale_days;
+                    let limit = fu_cfg.limit.min(MAX_CONTACTS_IN_PROMPT);
+                    match crm_store.as_deref() {
+                        Some(store) => {
+                            match store.contacts_needing_followup(stale_days, limit).await {
+                                Ok(raw) => {
+                                    tracing::info!(
+                                        contact_count = raw.len(),
+                                        stale_days,
+                                        "enriching follow-up prompt with stale contacts"
+                                    );
+                                    let summaries: Vec<StaleContactSummary> =
+                                        raw.into_iter().map(StaleContactSummary::from).collect();
+                                    build_followup_prompt(&req.message, &summaries)
+                                },
+                                Err(e) => {
+                                    tracing::warn!(
+                                        error = %e,
+                                        "failed to query stale contacts for follow-up; \
+                                         running with empty list"
+                                    );
+                                    build_followup_prompt(&req.message, &[])
+                                },
+                            }
+                        },
+                        None => {
+                            tracing::warn!(
+                                "follow-up job fired but CRM store is unavailable; \
+                                 running with empty list"
+                            );
+                            build_followup_prompt(&req.message, &[])
+                        },
+                    }
+                }
+                #[cfg(not(feature = "crm"))]
+                req.message.clone()
             } else {
                 req.message.clone()
             };
@@ -3577,10 +3637,12 @@ pub async fn prepare_gateway(
     // expensive and noisy — non-chat models (image, audio, video) would
     // generate spurious warnings.
 
-    // Store heartbeat config and channels offered on state for gon data and RPC methods.
+    // Store heartbeat config, follow-up config, and channels offered on state
+    // for gon data and RPC methods.
     {
         let mut inner = state.inner.write().await;
         inner.heartbeat_config = config.heartbeat.clone();
+        inner.follow_up_config = config.follow_up.clone();
         inner.channels_offered = config.channels.offered.clone();
     }
     #[cfg(feature = "graphql")]
@@ -5047,6 +5109,106 @@ pub async fn prepare_gateway(
             tracing::info!("heartbeat skipped: no prompt in config and HEARTBEAT.md is empty");
         }
     }
+
+    // Upsert the built-in follow-up job from config.
+    // Requires the CRM feature and crm.enabled — skipped otherwise.
+    #[cfg(feature = "crm")]
+    {
+        use {
+            crate::follow_up::{
+                DEFAULT_PROMPT, FOLLOW_UP_JOB_ID, FOLLOW_UP_SESSION_NAME, MAX_CONTACTS_IN_PROMPT,
+            },
+            moltis_cron::types::{
+                CronJobCreate, CronJobPatch, CronPayload, CronSchedule, SessionTarget,
+            },
+        };
+
+        let fu = &config.follow_up;
+
+        // Follow-up requires CRM to be enabled — if not, skip silently.
+        let crm_enabled = config.crm.enabled;
+
+        let existing = cron_service.list().await;
+        let existing_job = existing.iter().find(|j| j.id == FOLLOW_UP_JOB_ID);
+
+        if fu.enabled && crm_enabled {
+            let prompt = fu
+                .prompt
+                .as_deref()
+                .filter(|p| !p.trim().is_empty())
+                .unwrap_or(DEFAULT_PROMPT)
+                .to_owned();
+            let limit = fu.limit.min(MAX_CONTACTS_IN_PROMPT);
+            let _ = limit; // limit is read from config at turn time; stored on inner state
+
+            if existing_job.is_some() {
+                let patch = CronJobPatch {
+                    schedule: Some(CronSchedule::Cron {
+                        expr: fu.schedule.clone(),
+                        tz: None,
+                    }),
+                    payload: Some(CronPayload::AgentTurn {
+                        message: prompt,
+                        model: fu.model.clone(),
+                        timeout_secs: None,
+                        deliver: fu.deliver,
+                        channel: fu.channel.clone(),
+                        to: fu.to.clone(),
+                    }),
+                    enabled: Some(true),
+                    sandbox: Some(moltis_cron::types::CronSandboxConfig {
+                        enabled: fu.sandbox_enabled,
+                        image: fu.sandbox_image.clone(),
+                    }),
+                    ..Default::default()
+                };
+                match cron_service.update(FOLLOW_UP_JOB_ID, patch).await {
+                    Ok(job) => tracing::info!(id = %job.id, "follow-up job updated"),
+                    Err(e) => tracing::warn!("failed to update follow-up job: {e}"),
+                }
+            } else {
+                let create = CronJobCreate {
+                    id: Some(FOLLOW_UP_JOB_ID.into()),
+                    name: FOLLOW_UP_JOB_ID.into(),
+                    schedule: CronSchedule::Cron {
+                        expr: fu.schedule.clone(),
+                        tz: None,
+                    },
+                    payload: CronPayload::AgentTurn {
+                        message: prompt,
+                        model: fu.model.clone(),
+                        timeout_secs: None,
+                        deliver: fu.deliver,
+                        channel: fu.channel.clone(),
+                        to: fu.to.clone(),
+                    },
+                    session_target: SessionTarget::Named(FOLLOW_UP_SESSION_NAME.into()),
+                    delete_after_run: false,
+                    enabled: true,
+                    system: true,
+                    sandbox: moltis_cron::types::CronSandboxConfig {
+                        enabled: fu.sandbox_enabled,
+                        image: fu.sandbox_image.clone(),
+                    },
+                    wake_mode: moltis_cron::types::CronWakeMode::default(),
+                };
+                match cron_service.add(create).await {
+                    Ok(job) => tracing::info!(id = %job.id, "follow-up job created"),
+                    Err(e) => tracing::warn!("failed to create follow-up job: {e}"),
+                }
+            }
+        } else if existing_job.is_some() {
+            let _ = cron_service.remove(FOLLOW_UP_JOB_ID).await;
+            if !fu.enabled {
+                tracing::info!("follow-up job removed (disabled)");
+            } else {
+                tracing::info!("follow-up job removed (CRM disabled)");
+            }
+        } else if fu.enabled && !crm_enabled {
+            tracing::info!("follow-up skipped: follow_up.enabled = true but crm.enabled = false");
+        }
+    }
+
     startup_mem_probe.checkpoint("prepare_gateway.ready");
 
     Ok(PreparedGateway {

@@ -224,6 +224,7 @@ pub struct MoltisConfig {
     pub cron: CronConfig,
     pub caldav: CalDavConfig,
     pub crm: CrmConfig,
+    pub follow_up: FollowUpConfig,
     pub data_retention: DataRetentionConfig,
     pub webhooks: WebhooksConfig,
     /// Environment variables injected into the Moltis process at startup.
@@ -1079,6 +1080,62 @@ impl Default for CrmConfig {
             auto_create_contacts: true,
             default_practice_area: "other".into(),
             retention_days: None,
+        }
+    }
+}
+
+/// Follow-up engine configuration — periodic CRM stale-contact check.
+///
+/// When enabled, registers a system cron job (`__follow_up__`) that fires on
+/// `schedule`, queries the CRM for contacts with no interaction in the last
+/// `stale_days` days, and runs an agent turn to summarise who needs follow-up.
+/// Disabled by default; requires `crm.enabled = true`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct FollowUpConfig {
+    /// Whether the follow-up engine is enabled. Defaults to `false`.
+    pub enabled: bool,
+    /// Cron expression for the follow-up job schedule.
+    /// Defaults to `"0 9 * * 1-5"` (weekdays at 09:00 server time).
+    pub schedule: String,
+    /// Number of days without interaction before a contact is considered stale.
+    /// Defaults to `14`.
+    pub stale_days: u64,
+    /// Maximum number of stale contacts to include in a single agent prompt.
+    /// Defaults to `50`.
+    pub limit: usize,
+    /// Provider/model override for follow-up turns.
+    pub model: Option<String>,
+    /// Custom base prompt. If empty, the built-in default is used.
+    pub prompt: Option<String>,
+    /// Whether to deliver follow-up output to a channel. Defaults to `false`.
+    #[serde(default)]
+    pub deliver: bool,
+    /// Channel account identifier for delivery (required when `deliver = true`).
+    pub channel: Option<String>,
+    /// Destination chat/recipient ID for delivery.
+    pub to: Option<String>,
+    /// Whether the follow-up agent runs inside a sandbox. Defaults to `true`.
+    #[serde(default = "default_true")]
+    pub sandbox_enabled: bool,
+    /// Override sandbox image for the follow-up agent.
+    pub sandbox_image: Option<String>,
+}
+
+impl Default for FollowUpConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            schedule: "0 9 * * 1-5".into(),
+            stale_days: 14,
+            limit: 50,
+            model: None,
+            prompt: None,
+            deliver: false,
+            channel: None,
+            to: None,
+            sandbox_enabled: true,
+            sandbox_image: None,
         }
     }
 }

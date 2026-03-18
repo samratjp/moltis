@@ -244,6 +244,8 @@ pub struct GatewayInner {
     pub active_projects: HashMap<String, String>,
     /// Heartbeat configuration (for gon data and RPC methods).
     pub heartbeat_config: moltis_config::schema::HeartbeatConfig,
+    /// Follow-up engine configuration (read at cron-turn time to get stale_days/limit).
+    pub follow_up_config: moltis_config::schema::FollowUpConfig,
     /// Pending channel reply targets: when a channel message triggers a chat
     /// send, we queue the reply target so the "final" response can be routed
     /// back to the originating channel.
@@ -302,6 +304,7 @@ impl GatewayInner {
             active_sessions: HashMap::new(),
             active_projects: HashMap::new(),
             heartbeat_config: moltis_config::schema::HeartbeatConfig::default(),
+            follow_up_config: moltis_config::schema::FollowUpConfig::default(),
             channel_reply_queue: HashMap::new(),
             tts_session_overrides: HashMap::new(),
             tts_channel_overrides: HashMap::new(),

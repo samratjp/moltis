@@ -2,7 +2,7 @@ use {async_trait::async_trait, secrecy::Secret, sqlx::SqlitePool};
 
 use crate::{
     Error, Result,
-    store::CrmStore,
+    store::{CrmStore, StaleContactInfo},
     types::{
         Contact, ContactChannel, ContactStage, Interaction, InteractionKind, Matter, MatterPhase,
         MatterStatus, PracticeArea,
@@ -503,6 +503,64 @@ impl CrmStore for SqliteCrmStore {
             .await?;
         Ok(result.rows_affected())
     }
+
+    async fn contacts_needing_followup(
+        &self,
+        stale_days: u64,
+        limit: usize,
+    ) -> Result<Vec<StaleContactInfo>> {
+        use time::OffsetDateTime;
+        let now = OffsetDateTime::now_utc();
+        let cutoff = now - time::Duration::days(stale_days as i64);
+        let cutoff_ms = cutoff.unix_timestamp() * 1_000;
+
+        #[derive(sqlx::FromRow)]
+        struct StaleRow {
+            contact_id: String,
+            contact_name: String,
+            stage: String,
+            last_interaction_at: Option<i64>,
+            matter_title: Option<String>,
+        }
+
+        let rows = sqlx::query_as::<_, StaleRow>(
+            r#"SELECT
+                 c.id   AS contact_id,
+                 c.name AS contact_name,
+                 c.stage,
+                 MAX(i.created_at) AS last_interaction_at,
+                 (SELECT m.title FROM crm_matters m
+                  WHERE m.contact_id = c.id
+                  ORDER BY m.updated_at DESC
+                  LIMIT 1) AS matter_title
+               FROM crm_contacts c
+               LEFT JOIN crm_interactions i ON i.contact_id = c.id
+               GROUP BY c.id, c.name, c.stage
+               HAVING (MAX(i.created_at) IS NULL OR MAX(i.created_at) < ?)
+               ORDER BY MAX(i.created_at) ASC
+               LIMIT ?"#,
+        )
+        .bind(cutoff_ms)
+        .bind(limit as i64)
+        .fetch_all(&self.pool)
+        .await?;
+
+        rows.into_iter()
+            .map(|r| {
+                let stage = r
+                    .stage
+                    .parse::<ContactStage>()
+                    .map_err(|_| Error::parse("contact.stage", &r.stage))?;
+                Ok(StaleContactInfo {
+                    contact_id: r.contact_id,
+                    contact_name: r.contact_name,
+                    stage,
+                    last_interaction_at: r.last_interaction_at.map(|ms| ms as u64),
+                    matter_title: r.matter_title,
+                })
+            })
+            .collect()
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -988,5 +1046,99 @@ mod tests {
             .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "C1-Corp");
+    }
+
+    // ── contacts_needing_followup tests ───────────────────────────────────────
+
+    /// Returns the epoch-millisecond timestamp for `days` days ago.
+    fn ms_days_ago(days: u64) -> u64 {
+        let now = time::OffsetDateTime::now_utc().unix_timestamp() as u64 * 1_000;
+        now.saturating_sub(days * 24 * 3_600 * 1_000)
+    }
+
+    #[tokio::test]
+    async fn contacts_needing_followup_correct_results() {
+        let store = test_store().await;
+
+        // Stale contact: last interaction 30 days ago.
+        let stale = Contact::new("Stale Client");
+        store.upsert(stale.clone()).await.unwrap();
+        let mut interaction = Interaction::new(&stale.id, InteractionKind::Call, "Old call");
+        interaction.created_at = ms_days_ago(30);
+        interaction.updated_at = interaction.created_at;
+        store.upsert_interaction(interaction).await.unwrap();
+
+        // Fresh contact: last interaction 1 day ago.
+        let fresh = Contact::new("Fresh Client");
+        store.upsert(fresh.clone()).await.unwrap();
+        let mut recent = Interaction::new(&fresh.id, InteractionKind::Email, "Recent email");
+        recent.created_at = ms_days_ago(1);
+        recent.updated_at = recent.created_at;
+        store.upsert_interaction(recent).await.unwrap();
+
+        let results = store.contacts_needing_followup(14, 50).await.unwrap();
+
+        let ids: Vec<&str> = results.iter().map(|r| r.contact_id.as_str()).collect();
+        assert!(
+            ids.contains(&stale.id.as_str()),
+            "stale contact should be included"
+        );
+        assert!(
+            !ids.contains(&fresh.id.as_str()),
+            "fresh contact should be excluded"
+        );
+    }
+
+    #[tokio::test]
+    async fn contacts_needing_followup_empty_when_all_fresh() {
+        let store = test_store().await;
+
+        // One contact with a recent interaction.
+        let c = Contact::new("Active Client");
+        store.upsert(c.clone()).await.unwrap();
+        let mut i = Interaction::new(&c.id, InteractionKind::Meeting, "Meeting today");
+        i.created_at = ms_days_ago(0);
+        i.updated_at = i.created_at;
+        store.upsert_interaction(i).await.unwrap();
+
+        let results = store.contacts_needing_followup(14, 50).await.unwrap();
+        assert!(results.is_empty(), "no stale contacts expected");
+    }
+
+    #[tokio::test]
+    async fn contacts_needing_followup_respects_limit() {
+        let store = test_store().await;
+
+        // Insert 5 stale contacts.
+        for i in 0..5_u64 {
+            let c = Contact::new(format!("OldClient{i}"));
+            store.upsert(c.clone()).await.unwrap();
+            let mut interaction =
+                Interaction::new(&c.id, InteractionKind::Note, format!("Old note {i}"));
+            // Spread them out so ordering is deterministic.
+            interaction.created_at = ms_days_ago(30 + i);
+            interaction.updated_at = interaction.created_at;
+            store.upsert_interaction(interaction).await.unwrap();
+        }
+
+        // Request at most 3.
+        let results = store.contacts_needing_followup(14, 3).await.unwrap();
+        assert_eq!(results.len(), 3, "limit of 3 should be respected");
+    }
+
+    #[tokio::test]
+    async fn contacts_needing_followup_includes_contacts_with_no_interactions() {
+        let store = test_store().await;
+
+        // A contact with no interactions at all.
+        let never = Contact::new("Never Contacted");
+        store.upsert(never.clone()).await.unwrap();
+
+        let results = store.contacts_needing_followup(14, 50).await.unwrap();
+        let ids: Vec<&str> = results.iter().map(|r| r.contact_id.as_str()).collect();
+        assert!(
+            ids.contains(&never.id.as_str()),
+            "contact with no interactions should always be flagged as stale"
+        );
     }
 }

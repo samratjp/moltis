@@ -586,6 +586,26 @@ default_practice_area = "other"   # Default practice area for new matters:
 # retention_days = 365            # Days to retain interaction records (omit = keep forever)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# FOLLOW-UP ENGINE
+# ══════════════════════════════════════════════════════════════════════════════
+# Periodic CRM stale-contact check. When enabled, fires a daily agent turn that
+# lists contacts with no recent interaction and summarises who needs follow-up.
+# Requires crm.enabled = true.
+
+# [follow_up]
+# enabled = false                  # Enable the follow-up engine (opt-in)
+# schedule = "0 9 * * 1-5"        # Cron expression: when to run (default: weekdays 09:00)
+# stale_days = 14                  # Days without interaction before a contact is stale
+# limit = 50                       # Max contacts to include in each agent prompt
+# model = "..."                    # Override model for follow-up turns
+# prompt = "..."                   # Custom base prompt (default: built-in summary prompt)
+# deliver = false                  # Deliver output to a channel
+# channel = "my-bot"               # Channel account identifier (required when deliver = true)
+# to = "123456789"                 # Chat/recipient ID (required when deliver = true)
+# sandbox_enabled = true           # Run follow-up agent in sandbox
+# sandbox_image = "..."            # Override sandbox image
+
+# ══════════════════════════════════════════════════════════════════════════════
 # DATA RETENTION
 # ══════════════════════════════════════════════════════════════════════════════
 # Automatic purging of aged records. Disabled by default — no data is ever
