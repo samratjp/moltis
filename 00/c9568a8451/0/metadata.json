@@ -1,0 +1,70 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "00c9568a8451",
+  "session_id": "263c5fbd-78df-444d-9b3a-1d7ed97a5ac8",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T18:17:11.459736Z",
+  "branch": "CHA-12-crm-service-trait",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/service-traits/src/lib.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "329157094703",
+  "token_usage": {
+    "input_tokens": 72,
+    "cache_creation_tokens": 149565,
+    "cache_read_tokens": 3502205,
+    "output_tokens": 15330,
+    "api_call_count": 54
+  },
+  "summary": {
+    "intent": "Investigate and implement a CrmService trait in the service-traits crate for issue CHA-12, following existing service trait patterns with a NoopCrmService stub and wiring into the Services struct.",
+    "outcome": "CrmService trait with 15 methods (contacts/matters CRUD, interactions list/create, channels list/link/unlink), NoopCrmService stub, and Services struct integration were successfully implemented in crates/service-traits/src/lib.rs, passing all quality checks, with a PR created and linked to Linear.",
+    "learnings": {
+      "repo": [
+        "service-traits crate uses a Value-based (serde_json::Value) pattern for all service traits — params and returns are untyped to support RPC dispatch without domain crate dependencies",
+        "Each service trait follows: #[async_trait] trait XxxService: Send + Sync with ServiceResult\u003cValue\u003e returns, a NoopXxxService stub (list ops return json!([]), reads return json!({}), writes return Err('xxx not configured')), and Arc\u003cdyn XxxService\u003e field in the Services struct",
+        "Gateway has a 'crm' feature flag already wired for migrations but no API routes yet — CrmService trait is the service-layer abstraction above the existing CrmStore persistence trait",
+        "CRM domain types (Contact, ContactChannel, Matter, Interaction) are fully defined in crates/crm/src/types.rs with PII-safe Secret\u003cString\u003e fields and comprehensive enums",
+        "Linear API auth uses an env var (LINEAR_API_KEY) that is not automatically propagated to sandbox/subprocess environments — requires explicit node-based HTTP calls"
+      ],
+      "code": [
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "finding": "All 23 existing service traits + Services struct aggregation live in a single lib.rs file; CrmService was appended following the same pattern"
+        },
+        {
+          "path": "crates/crm/src/store.rs",
+          "finding": "CrmStore is a low-level persistence trait with SqliteCrmStore and MemoryCrmStore impls using CRM-local crate::Result\u003cT\u003e — distinct from the service-layer ServiceResult\u003cValue\u003e"
+        }
+      ],
+      "workflow": [
+        "Linear comments serve as a persistent workpad across agent runs — investigation and workpad comments are posted separately and appended to on rework runs",
+        "Template literal escaping in bash is error-prone for large markdown bodies — writing to a temp file and reading from it is more reliable",
+        "Agent checks for existing feature branches and open PRs before creating new ones to avoid duplicates on rework runs"
+      ]
+    },
+    "friction": [
+      "LINEAR_API_KEY env var not propagated to subprocess/sandbox environment — required fallback to node-based HTTP calls for Linear API access",
+      "Shell template literal escaping too complex for large markdown comment bodies — required writing to /tmp file as workaround",
+      "service-traits/src/lib.rs is a large single file (23 traits), requiring multiple paginated reads to understand full structure and find correct insertion points"
+    ],
+    "open_items": [
+      "Real CrmService implementation (backed by CrmStore) not yet created — will live in gateway or a glue crate behind the existing 'crm' feature flag",
+      "No API routes or RPC handlers for CRM exist in the gateway yet — CrmService trait is only the abstraction layer",
+      "interactions_get, interactions_update, interactions_delete methods intentionally omitted per issue scope ('list/add only') — can be added later",
+      "Feature flag for CrmService in service-traits not yet added (noted as optional in review feedback)"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T18:16:50.023297Z",
+    "agent_lines": 152,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 152,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-12/263c5fbd-78df-444d-9b3a-1d7ed97a5ac8.jsonl"
+}

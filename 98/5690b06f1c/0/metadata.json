@@ -1,0 +1,80 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "985690b06f1c",
+  "session_id": "bd27ea9c-6bc0-4e92-82ee-eb8abab61143",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T18:49:43.919406Z",
+  "branch": "CHA-12-crm-service-trait",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/services.rs",
+    "crates/graphql/tests/integration.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "21d63def91c0",
+  "token_usage": {
+    "input_tokens": 62,
+    "cache_creation_tokens": 104476,
+    "cache_read_tokens": 2071839,
+    "output_tokens": 11950,
+    "api_call_count": 42
+  },
+  "summary": {
+    "intent": "Implement a CrmService trait in the moltis service-traits crate (CHA-12), including a NoopCrmService stub and wiring into the Services struct, then address code review feedback in a rework run.",
+    "outcome": "Rework completed: fixed build-breaking missing `crm` field in GatewayServices and graphql integration test, added `params` to `contacts_list`, added `get_by_external` methods, and fixed a broken rustdoc link. All quality checks passed (fmt, clippy, 4 tests).",
+    "learnings": {
+      "repo": [
+        "service-traits crate uses an untyped RPC dispatch pattern: all trait methods take `params: Value` and return `ServiceResult\u003cValue\u003e` — no concrete domain types cross the crate boundary.",
+        "Every service trait requires three components: the trait itself, a NoopXxxService stub (lists return `json!([])`, mutations return `Err('xxx not configured')`), and wiring into the `Services` struct + `Default` impl.",
+        "GatewayServices in crates/gateway/src/services.rs has a `noop()` constructor and a `to_services()` method — both must be updated when adding a new field to `Services`.",
+        "The gateway crate gates the real CRM implementation behind a `crm` feature flag; the trait + noop live unconditionally in service-traits.",
+        "The moltis-web CSS error in `cargo check` is a pre-existing issue unrelated to this work."
+      ],
+      "code": [
+        {
+          "path": "crates/gateway/src/services.rs",
+          "line": 1429,
+          "end_line": 1429,
+          "finding": "GatewayServices::to_services() constructs Services struct directly — must be updated whenever a new field is added to Services."
+        },
+        {
+          "path": "crates/graphql/tests/integration.rs",
+          "line": 827,
+          "end_line": 827,
+          "finding": "build_mock_services() constructs Services struct directly — must be updated whenever a new field is added to Services."
+        },
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "finding": "Doc comment referencing [moltis_crm::CrmStore] won't resolve because service-traits has no dependency on moltis-crm; use plain text or intra-doc links only within the crate."
+        }
+      ],
+      "workflow": [
+        "The Stokowski orchestrator injects lifecycle context (issue state, prior workpad, review comments) into agent prompts via HTML comments — agents should append to workpad, never overwrite.",
+        "Linear API credentials are not available in the agent environment; the orchestrator posts comments on behalf of agents.",
+        "Scoping cargo check to specific crates (`-p crate-name`) is faster and avoids surfacing pre-existing errors in unrelated crates."
+      ]
+    },
+    "friction": [
+      "Linear API key not available in the agent environment, preventing the code reviewer from posting its review comment directly — had to output inline instead.",
+      "Run 1 implementation passed its own quality checks (cargo check ✓) but failed to update downstream construction sites, causing a build break that was only caught in code review.",
+      "The MCP context-mode plugin was used for shell commands in some parts of the session but Bash tool in others — inconsistent tooling."
+    ],
+    "open_items": [
+      "Real CrmService implementation in the gateway crate (behind the `crm` feature flag) is not yet built — only the trait + noop exist.",
+      "No API routes or RPC handlers for CRM exist in the gateway yet.",
+      "contacts_get_by_external and channels_get_by_external were added to the trait but have no real implementation path until the gateway impl is built.",
+      "interactions_get / interactions_update / interactions_delete were added (full CRUD) but the original issue only required list/add — the extra methods may never be needed."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-17T18:49:18.562946Z",
+    "agent_lines": 0,
+    "human_added": 212,
+    "human_modified": 4,
+    "human_removed": 0,
+    "total_committed": 212,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-12/bd27ea9c-6bc0-4e92-82ee-eb8abab61143.jsonl"
+}

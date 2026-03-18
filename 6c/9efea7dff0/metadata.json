@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "6c9efea7dff0",
+  "strategy": "manual-commit",
+  "branch": "CHA-16-rpc-crm-contacts",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs",
+    "crates/gateway/src/methods/mod.rs",
+    "crates/gateway/src/methods/services.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/6c/9efea7dff0/0/metadata.json",
+      "transcript": "/6c/9efea7dff0/0/full.jsonl",
+      "context": "/6c/9efea7dff0/0/context.md",
+      "content_hash": "/6c/9efea7dff0/0/content_hash.txt",
+      "prompt": "/6c/9efea7dff0/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 100,
+    "cache_creation_tokens": 334726,
+    "cache_read_tokens": 5697416,
+    "output_tokens": 27923,
+    "api_call_count": 69
+  }
+}

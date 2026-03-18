@@ -1,0 +1,123 @@
+Implement the following plan:
+
+# Fix: GitHub Copilot provider — Responses API support for gpt-5.4+
+
+## Context
+
+GitHub Copilot provider (`crates/providers/src/github_copilot.rs`) hardcodes `/chat/completions` for all models. Newer OpenAI models (gpt-5.4, gpt-5.4-pro, gpt-5.2-pro) only support the Responses API (`/responses`), returning HTTP 400 with `unsupported_api_for_model`. See issue #392.
+
+The OpenAI provider already has Responses API support via WebSocket, but that's gated behind `api.openai.com` domain checks. The Copilot provider needs its own Responses API path using HTTP+SSE (simpler, no WebSocket pool needed).
+
+## Approach
+
+Model-based routing with error-based fallback: dispatch to `/responses` for known models, and detect `unsupported_api_for_model` errors for unknown future models.
+
+## Files to modify
+
+### 1. `crates/providers/src/openai_compat.rs` — shared utilities
+
+- **Move `split_responses_instructions_and_input()`** from `OpenAiProvider` impl to a free function here. It has no `self` dependency — just splits system messages into `instructions` and passes the rest through `to_responses_input()`.
+
+- **Add `responses_output_index()`** — extracted from `ws_output_index()` in `openai.rs` (resolves `output_index` / `item_index` / `index` from a Responses API event). Both providers can share it.
+
+- **Add `process_responses_sse_line()`** — new function that processes a single SSE `data:` line from a Responses API stream. Returns `SseLineResult` (reusing existing enum). Handles event types:
+  - `response.output_text.delta` → `StreamEvent::Delta`
+  - `response.output_item.added` (type=function_call) → `StreamEvent::ToolCallStart`
+  - `response.function_call_arguments.delta` → `StreamEvent::ToolCallArgumentsDelta`
+  - `response.function_call_arguments.done` → `StreamEvent::ToolCallComplete`
+  - `response.completed` → parse usage, return `SseLineResult::Done`
+  - `error` / `response.failed` → `StreamEvent::Error`
+
+- **Add `ResponsesStreamState`** — state struct for Responses API SSE streaming (tool_calls map, completed_tool_calls set, current_tool_index, usage tokens). Similar to the local variables in `stream_with_tools_websocket()`.
+
+- **Add `finalize_responses_stream()`** — like `finalize_stream()` but for Responses API state (emits pending ToolCallComplete + Done with usage).
+
+- **Add `parse_responses_completion()`** — parse a non-streaming Responses API JSON response into `CompletionResponse`. Handles `output` array with `message` and `function_call` items.
+
+### 2. `crates/providers/src/openai.rs` — update to use shared utilities
+
+- Change `Self::split_responses_instructions_and_input(messages)` → `split_responses_instructions_and_input(messages)` (imported from `openai_compat`)
+- Change `ws_output_index()` → `responses_output_index()` (imported from `openai_compat`)
+- Remove the now-moved functions from the `OpenAiProvider` impl
+
+### 3. `crates/providers/src/github_copilot.rs` — add Responses API
+
+**Add `needs_responses_api(model: &str) -> bool`:**
+```rust
+fn needs_responses_api(model: &str) -> bool {
+    let m = model.to_ascii_lowercase();
+    m.starts_with("gpt-5.4")
+        || m == "gpt-5.2-pro"
+        || m.starts_with("codex-")
+}
+```
+
+**Add `is_responses_api_required_error(body: &str) -> bool`:**
+Check for `"unsupported_api_for_model"` or `"not accessible via the /chat/completions"` in the error response.
+
+**Add `complete_responses()`:**
+- POST to `{COPILOT_API_BASE}/responses` (non-streaming)
+- Build request body using `split_responses_instructions_and_input()`, `to_responses_api_tools()`
+- Parse response using `parse_responses_completion()`
+
+**Modify `complete()`:**
+- If `needs_responses_api(&self.model)`, dispatch directly to `complete_responses()`
+- Otherwise, try chat completions. On 400 error with `is_responses_api_required_error()`, retry with `complete_responses()`
+
+**Add `stream_responses_api()`:**
+- POST to `{COPILOT_API_BASE}/responses` with `"stream": true`
+- Build request body same as `complete_responses()` but with stream options
+- Parse SSE events using `process_responses_sse_line()` + `ResponsesStreamState`
+- Follow existing SSE parsing pattern (byte_stream → buf → line splitting → event processing)
+
+**Modify `stream_with_tools()`:**
+- If `needs_responses_api(&self.model)`, dispatch to `stream_responses_api()`
+- Otherwise, use existing chat completions streaming
+- Add error detection: if 400 with `is_responses_api_required_error()`, redirect to `stream_responses_api()` (detected before streaming starts, in the error_for_status_ref check)
+
+**Update `COPILOT_MODELS`:**
+- Add `("gpt-5.4", "GPT-5.4 (Copilot)")`, `("gpt-5.4-pro", "GPT-5.4 Pro (Copilot)")`, `("gpt-5.2-pro", "GPT-5.2 Pro (Copilot)")`
+
+**Update `MockCopilotProvider` in tests:**
+- Add mock `/responses` endpoint
+- Add test for `needs_responses_api()` function
+- Add test for `is_responses_api_required_error()`
+- Add test for `complete_responses()` with mock
+- Add test for error-based fallback from chat completions to responses API
+- Add streaming test for responses API
+
+### 4. `crates/providers/src/openai_compat.rs` — tests
+
+- Add tests for `split_responses_instructions_and_input()`
+- Add tests for `process_responses_sse_line()` covering all event types
+- Add tests for `parse_responses_completion()` (text response, tool call response)
+- Add tests for `responses_output_index()`
+
+## Imports to add in `github_copilot.rs`
+
+```rust
+use super::openai_compat::{
+    // existing
+    SseLineResult, StreamingToolState, finalize_stream, parse_openai_compat_usage_from_payload,
+    parse_tool_calls, process_openai_sse_line, to_openai_tools,
+    // new
+    ResponsesStreamState, finalize_responses_stream, parse_responses_completion,
+    process_responses_sse_line, split_responses_instructions_and_input, to_responses_api_tools,
+};
+```
+
+## Verification
+
+1. `cargo check` — compiles
+2. `cargo test` — all existing + new tests pass
+3. `cargo +nightly-2025-11-30 fmt --all -- --check` — formatting
+4. `cargo +nightly-2025-11-30 clippy --workspace --all-features --all-targets -- -D warnings` — lints
+5. Manual test: configure github-copilot provider, select gpt-5.4, send a message → should work
+6. Manual test: select gpt-4o → should still work via chat/completions
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/penso/.claude/projects/-Users-penso--superset-worktrees-moltis-copilot-gpt-5-4/686bdbdc-7205-4a6d-a6fc-26f0f22e6f65.jsonl
+
+---
+
+commit, push, create a PR
