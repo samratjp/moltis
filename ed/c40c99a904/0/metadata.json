@@ -1,0 +1,92 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "edc40c99a904",
+  "session_id": "0b015b2c-a64a-491c-acc1-75e934a4750f",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T05:48:46.08194Z",
+  "branch": "feat/cha-17-crm-matters-rpc",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "c2749b649dcf",
+  "token_usage": {
+    "input_tokens": 24,
+    "cache_creation_tokens": 49620,
+    "cache_read_tokens": 651578,
+    "output_tokens": 4351,
+    "api_call_count": 17
+  },
+  "summary": {
+    "intent": "Run QA verification on the CHA-17 implementation (crm.matters.* RPC filtering/pagination methods) to validate quality gates before marking the issue complete.",
+    "outcome": "QA skill was invoked and partial verification was performed, with at least one file modified (crm_service.rs), but the transcript is truncated and the final quality gate results are not visible.",
+    "learnings": {
+      "repo": [
+        "The project uses a pinned nightly Rust toolchain with strict quality gates: fmt, clippy -D warnings, and full test suite (496 tests).",
+        "CRM list methods follow a consistent pattern: accept a serde_json::Value params argument, parse filters internally, and delegate to a store method with explicit filter parameters.",
+        "Dynamic SQL with WHERE clauses and LIMIT/OFFSET is the established pattern for filtered queries in the SQLite store.",
+        "New database indexes require a migration file; phase and practice_area columns on matters needed indexes for filtered query performance.",
+        "The store trait uses a DRY pattern where simpler methods (list_matters, list_matters_by_contact) delegate to the more general list_matters_filtered."
+      ],
+      "code": [
+        {
+          "path": "crates/crm/src/store.rs",
+          "finding": "Store trait extended with list_matters_filtered(contact_id, status, phase, practice_area, search, offset, limit) signature."
+        },
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "Dynamic SQL construction with conditional WHERE clauses; LIKE used for case-insensitive search on title and description fields. 9 new tests added."
+        },
+        {
+          "path": "crates/crm/src/store_memory.rs",
+          "finding": "In-memory store implements matching filter logic for test parity. 5 new tests added."
+        },
+        {
+          "path": "crates/service-traits/src/lib.rs",
+          "finding": "list_matters() signature changed to list_matters(params: Value) to match all other CRM list methods."
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "finding": "LiveCrmService parses filter params from JSON Value and routes to filtered store method. Modified during QA run."
+        },
+        {
+          "path": "crates/gateway/src/methods/services.rs",
+          "finding": "RPC handler passes ctx.params through to list_matters rather than ignoring them."
+        }
+      ],
+      "workflow": [
+        "The orchestration pipeline uses Linear comments as a persistent workpad for tracking state across runs, appending on rework rather than overwriting.",
+        "QA runs are a distinct lifecycle stage that can trigger file modifications (not just read-only verification).",
+        "The agent checks for existing branches and PRs before creating new ones to avoid duplicates on rework runs.",
+        "Port detection and app connectivity checks are part of the QA preamble to determine if a live app is available for integration testing."
+      ]
+    },
+    "friction": [
+      "The transcript is truncated — clippy and test suite results are not visible, so it's unclear whether QA fully passed.",
+      "QA required a code fix in crm_service.rs during the QA stage itself (run 2), indicating the prior implementation had a remaining issue.",
+      "Multiple tool calls were needed just to detect the running app and its ports, suggesting the local dev environment setup is not straightforward.",
+      "The Linear comment 'Hey what's going here I don't see planning' indicates a prior communication gap around the planning phase visibility."
+    ],
+    "open_items": [
+      "Status transition validation (e.g., archived → open) is explicitly deferred.",
+      "crm.matters.stats aggregate endpoint not implemented.",
+      "crm.matters.get_with_interactions composite query not implemented.",
+      "Sort parameter (sortBy/sortOrder) not implemented.",
+      "FTS5 full-text search deferred in favor of LIKE.",
+      "UUID validation on IDs is a pre-existing gap not addressed.",
+      "crm.contacts.list filtering has the same gap and needs a separate issue.",
+      "3 code quality issues were identified during review but deferred as trivial or pre-existing."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T05:48:19.762665Z",
+    "agent_lines": 0,
+    "human_added": 140,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 140,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-17/0b015b2c-a64a-491c-acc1-75e934a4750f.jsonl"
+}

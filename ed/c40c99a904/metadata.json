@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "edc40c99a904",
+  "strategy": "manual-commit",
+  "branch": "feat/cha-17-crm-matters-rpc",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ed/c40c99a904/0/metadata.json",
+      "transcript": "/ed/c40c99a904/0/full.jsonl",
+      "context": "/ed/c40c99a904/0/context.md",
+      "content_hash": "/ed/c40c99a904/0/content_hash.txt",
+      "prompt": "/ed/c40c99a904/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 24,
+    "cache_creation_tokens": 49620,
+    "cache_read_tokens": 651578,
+    "output_tokens": 4351,
+    "api_call_count": 17
+  }
+}
