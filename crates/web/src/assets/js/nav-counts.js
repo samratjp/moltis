@@ -9,6 +9,7 @@ import * as gon from "./gon.js";
 var ids = {
 	skills: "navCountSkills",
 	crons: "navCountCrons",
+	crm: "navCountCrm",
 };
 
 /** Update a single nav badge. Pass 0 to hide it. */

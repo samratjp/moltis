@@ -23,6 +23,7 @@ import { initMonitoring, teardownMonitoring } from "./page-metrics.js";
 import { initNetworkAudit, teardownNetworkAudit } from "./page-network-audit.js";
 import { initNodes, teardownNodes } from "./page-nodes.js";
 import { initProviders, teardownProviders } from "./page-providers.js";
+import { initCrm, teardownCrm } from "./page-crm.js";
 import { initSkills, teardownSkills } from "./page-skills.js";
 import { initTerminal, teardownTerminal } from "./page-terminal.js";
 import { detectPasskeyName } from "./passkey-detect.js";
@@ -182,6 +183,12 @@ var sections = [
 		page: true,
 	},
 	{
+		id: "crm",
+		label: "CRM",
+		icon: html`<span class="icon icon-users"></span>`,
+		page: true,
+	},
+	{
 		id: "hooks",
 		label: "Hooks",
 		icon: html`<span class="icon icon-wrench"></span>`,
@@ -227,6 +234,7 @@ function getVisibleSections() {
 	var vs = gon.get("vault_status");
 	return sections.filter((s) => {
 		if (!s.id) return true;
+		if (s.id === "crm" && !gon.get("crm_enabled")) return false;
 		if (s.id === "graphql" && !gon.get("graphql_enabled")) return false;
 		if (s.id === "import" && !gon.get("openclaw_detected")) return false;
 		if (s.id === "vault" && (!vs || vs === "disabled")) return false;
@@ -3944,6 +3952,7 @@ var pageSectionHandlers = {
 	},
 	providers: { init: initProviders, teardown: teardownProviders },
 	channels: { init: initChannels, teardown: teardownChannels },
+	crm: { init: initCrm, teardown: teardownCrm },
 	mcp: { init: initMcp, teardown: teardownMcp },
 	nodes: { init: initNodes, teardown: teardownNodes },
 	hooks: { init: initHooks, teardown: teardownHooks },

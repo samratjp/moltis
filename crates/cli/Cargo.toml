@@ -103,7 +103,7 @@ tempfile = { workspace = true }
 [features]
 agent = ["moltis-gateway/agent", "moltis-web?/agent"]
 caldav = ["moltis-gateway/caldav"]
-crm    = ["dep:moltis-crm", "moltis-gateway/crm"]
+crm    = ["dep:moltis-crm", "moltis-gateway/crm", "moltis-web?/crm"]
 default = [
   "agent",
   "caldav",

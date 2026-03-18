@@ -71,6 +71,7 @@ var namespaces = {
 	pwa: (lng) => import(`./locales/${lng}/pwa.js`),
 	sessions: (lng) => import(`./locales/${lng}/sessions.js`),
 	logs: (lng) => import(`./locales/${lng}/logs.js`),
+	crm: (lng) => import(`./locales/${lng}/crm.js`),
 };
 
 // ── Load all namespace bundles for a language ───────────────
