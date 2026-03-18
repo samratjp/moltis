@@ -1,0 +1,83 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "edc40c99a904",
+  "session_id": "832907f5-ebd6-4f1a-a0dc-9fdf404482fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T05:49:33.571452Z",
+  "branch": "feat/cha-17-crm-matters-rpc",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "crates/gateway/src/crm_service.rs"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "0e9da2e9b9c4",
+  "token_usage": {
+    "input_tokens": 42,
+    "cache_creation_tokens": 68929,
+    "cache_read_tokens": 1675666,
+    "output_tokens": 13709,
+    "api_call_count": 29
+  },
+  "summary": {
+    "intent": "Run an automated CEO-level review of PR #14 (CHA-17: crm.matters.* RPC filtering) and post the review summary to Linear and GitHub.",
+    "outcome": "The CEO review was compiled and posted as a PR comment on GitHub (#14). Linear posting was attempted but hit API/auth issues requiring debugging. The review itself was comprehensive, covering scope validation, architecture, security, and open gaps.",
+    "learnings": {
+      "repo": [
+        "crm.matters.list now supports filtering by contactId, status, phase, practiceArea, search (LIKE on title+description), and pagination (offset/limit default 50) — following contacts patterns but more advanced.",
+        "list_contacts has zero filtering — an intentional asymmetry vs the newly enhanced list_matters.",
+        "Dynamic SQL uses WHERE 1=1 pattern with appended clauses; all filter columns (status, contact_id, updated_at, phase, practice_area) are indexed.",
+        "store.rs trait uses default impls so list_matters and list_matters_by_contact delegate to list_matters_filtered — DRY pattern.",
+        "Search term is interpolated directly into LIKE format strings without wildcard sanitization (%, _ not escaped) — identified as a gap.",
+        "limit param has no max cap — a caller could pass limit=999999 with no server-side guard.",
+        "Migrations live in crates/crm/migrations/*.sql; new migration added indexes on phase and practice_area."
+      ],
+      "code": [
+        {
+          "path": "crates/crm/src/store_sqlite.rs",
+          "finding": "LIKE search interpolates user input directly into format string without sanitizing SQL wildcard characters (%, _)."
+        },
+        {
+          "path": "crates/gateway/src/crm_service.rs",
+          "finding": "Filter param parsing and routing logic lives here; passes parsed filters down to store layer."
+        },
+        {
+          "path": "crates/crm/migrations/20260318000000_matters_filter_indexes.sql",
+          "finding": "Adds indexes on phase and practice_area columns to support efficient filtered queries."
+        }
+      ],
+      "workflow": [
+        "Headless orchestration sessions use Linear comments as a persistent workpad — title '## Workpad', append on rework rather than overwrite.",
+        "CEO review skill (plan-ceo-review) follows a structured flow: system audit → scope challenge → mode selection → security/performance findings → open items.",
+        "PR comments via gh CLI work reliably; Linear API posting required separate debugging and may need auth investigation.",
+        "mcp__plugin_context-mode batch execute was tried for file reads but failed — fell back to direct Glob/Grep/Read tools."
+      ]
+    },
+    "friction": [
+      "mcp__plugin_context-mode__ctx_batch_execute failed to locate files, requiring fallback to individual Glob/Read/Grep calls.",
+      "Linear API comment posting failed and required multiple debug attempts — auth or API access may not be configured in this environment.",
+      "AskUserQuestion was invoked mid-review despite the headless/no-human-in-loop constraint, requiring the agent to self-correct and proceed."
+    ],
+    "open_items": [
+      "crm.contacts.list has no filtering — same gap as matters had before this PR; should be addressed in a follow-on issue.",
+      "LIKE search does not sanitize SQL wildcard characters (%, _) — user-supplied search terms could produce unexpected matches.",
+      "No max cap on limit parameter — a caller could request unbounded results.",
+      "No total_count in paginated response — pagination UIs cannot show 'page X of Y' without a separate count query.",
+      "Status transition validation (e.g. archived → open) not implemented — deferred by design.",
+      "crm.matters.stats aggregate endpoint not implemented — deferred.",
+      "crm.matters.get_with_interactions composite query not implemented — deferred.",
+      "Sort parameter (sortBy/sortOrder) not implemented — deferred.",
+      "FTS5 for matter search not implemented — LIKE accepted as sufficient for current volumes.",
+      "UUID validation on IDs is a pre-existing gap, not addressed here."
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T05:49:10.029649Z",
+    "agent_lines": 0,
+    "human_added": 140,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 140,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-samjp-Code-stokowski-workspaces-CHA-17/832907f5-ebd6-4f1a-a0dc-9fdf404482fa.jsonl"
+}
