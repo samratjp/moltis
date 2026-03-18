@@ -620,6 +620,146 @@ mod tests {
         assert_eq!(result, Value::Null);
     }
 
+    #[tokio::test]
+    async fn list_matters_empty_returns_empty_array() {
+        let svc = make_service().await;
+        let result = svc.list_matters(serde_json::json!(null)).await.unwrap();
+        assert_eq!(result, serde_json::json!([]));
+    }
+
+    #[tokio::test]
+    async fn list_matters_no_params_returns_all() {
+        let svc = make_service().await;
+        let mid = uuid::Uuid::new_v4().to_string();
+        svc.upsert_matter(serde_json::json!({
+            "id": mid,
+            "title": "All Matters Test",
+            "status": "open",
+            "phase": "intake",
+            "practiceArea": "other",
+        }))
+        .await
+        .unwrap();
+        let result = svc.list_matters(serde_json::json!(null)).await.unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_status() {
+        let svc = make_service().await;
+        let open_id = uuid::Uuid::new_v4().to_string();
+        let closed_id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_matter(serde_json::json!({
+            "id": open_id,
+            "title": "Open Matter",
+            "status": "open",
+            "phase": "intake",
+            "practiceArea": "other",
+        }))
+        .await
+        .unwrap();
+        svc.upsert_matter(serde_json::json!({
+            "id": closed_id,
+            "title": "Closed Matter",
+            "status": "closed",
+            "phase": "intake",
+            "practiceArea": "other",
+        }))
+        .await
+        .unwrap();
+        let result = svc
+            .list_matters(serde_json::json!({ "status": "open" }))
+            .await
+            .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["status"], "open");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_search() {
+        let svc = make_service().await;
+        let match_id = uuid::Uuid::new_v4().to_string();
+        let nomatch_id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_matter(serde_json::json!({
+            "id": match_id,
+            "title": "Patent Dispute",
+            "status": "open",
+            "phase": "intake",
+            "practiceArea": "other",
+        }))
+        .await
+        .unwrap();
+        svc.upsert_matter(serde_json::json!({
+            "id": nomatch_id,
+            "title": "Lease Agreement",
+            "status": "open",
+            "phase": "intake",
+            "practiceArea": "other",
+        }))
+        .await
+        .unwrap();
+        let result = svc
+            .list_matters(serde_json::json!({ "search": "patent" }))
+            .await
+            .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["title"], "Patent Dispute");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_pagination() {
+        let svc = make_service().await;
+        for i in 0..5_u32 {
+            let mid = uuid::Uuid::new_v4().to_string();
+            svc.upsert_matter(serde_json::json!({
+                "id": mid,
+                "title": format!("Matter {i}"),
+                "status": "open",
+                "phase": "intake",
+                "practiceArea": "other",
+            }))
+            .await
+            .unwrap();
+        }
+        let result = svc
+            .list_matters(serde_json::json!({ "offset": 0, "limit": 2 }))
+            .await
+            .unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn list_matters_invalid_status_returns_error() {
+        let svc = make_service().await;
+        let result = svc
+            .list_matters(serde_json::json!({ "status": "not_a_real_status" }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn list_matters_empty_search_ignored() {
+        let svc = make_service().await;
+        let mid = uuid::Uuid::new_v4().to_string();
+        svc.upsert_matter(serde_json::json!({
+            "id": mid,
+            "title": "Visible Matter",
+            "status": "open",
+            "phase": "intake",
+            "practiceArea": "other",
+        }))
+        .await
+        .unwrap();
+        // Empty search string should be treated as no filter
+        let result = svc
+            .list_matters(serde_json::json!({ "search": "" }))
+            .await
+            .unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 1);
+    }
+
     // ── Interactions ──────────────────────────────────────────────────────────
 
     #[tokio::test]
