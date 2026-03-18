@@ -5,7 +5,10 @@ use async_trait::async_trait;
 use crate::{
     Result,
     store::CrmStore,
-    types::{Contact, ContactChannel, ContactStage, Interaction, Matter, PracticeArea},
+    types::{
+        Contact, ContactChannel, ContactStage, Interaction, Matter, MatterPhase, MatterStatus,
+        PracticeArea,
+    },
 };
 
 /// In-memory implementation of [`CrmStore`] for testing.
@@ -134,38 +137,38 @@ impl CrmStore for MemoryCrmStore {
 
     // ── Matters ───────────────────────────────────────────────────────────────
 
-    async fn list_matters(&self) -> Result<Vec<Matter>> {
-        let matters = self.matters.read().unwrap_or_else(|e| e.into_inner());
-        let mut out: Vec<Matter> = matters.values().cloned().collect();
-        out.sort_by_key(|m| std::cmp::Reverse(m.updated_at));
-        Ok(out)
-    }
-
     async fn list_matters_filtered(
         &self,
         contact_id: Option<&str>,
+        status: Option<MatterStatus>,
+        phase: Option<MatterPhase>,
         practice_area: Option<PracticeArea>,
+        search: Option<&str>,
+        offset: u64,
+        limit: u64,
     ) -> Result<Vec<Matter>> {
         let matters = self.matters.read().unwrap_or_else(|e| e.into_inner());
+        let search_lower = search.map(str::to_lowercase);
         let mut out: Vec<Matter> = matters
             .values()
             .filter(|m| contact_id.is_none_or(|cid| m.contact_id.as_deref() == Some(cid)))
+            .filter(|m| status.is_none_or(|s| m.status == s))
+            .filter(|m| phase.is_none_or(|p| m.phase == p))
             .filter(|m| practice_area.is_none_or(|pa| m.practice_area == pa))
+            .filter(|m| {
+                search_lower.as_deref().is_none_or(|term| {
+                    m.title.to_lowercase().contains(term)
+                        || m.description
+                            .as_deref()
+                            .is_some_and(|d| d.to_lowercase().contains(term))
+                })
+            })
             .cloned()
             .collect();
         out.sort_by_key(|m| std::cmp::Reverse(m.updated_at));
-        Ok(out)
-    }
-
-    async fn list_matters_by_contact(&self, contact_id: &str) -> Result<Vec<Matter>> {
-        let matters = self.matters.read().unwrap_or_else(|e| e.into_inner());
-        let mut out: Vec<Matter> = matters
-            .values()
-            .filter(|m| m.contact_id.as_deref() == Some(contact_id))
-            .cloned()
-            .collect();
-        out.sort_by_key(|m| std::cmp::Reverse(m.updated_at));
-        Ok(out)
+        let offset = offset as usize;
+        let limit = limit as usize;
+        Ok(out.into_iter().skip(offset).take(limit).collect())
     }
 
     async fn get_matter(&self, id: &str) -> Result<Option<Matter>> {
@@ -243,7 +246,7 @@ mod tests {
         super::*,
         crate::types::{
             Contact, ContactChannel, ContactStage, Interaction, InteractionKind, Matter,
-            PracticeArea,
+            MatterPhase, MatterStatus, PracticeArea,
         },
     };
 
@@ -571,10 +574,114 @@ mod tests {
             .await
             .unwrap();
         let by_pa = store
-            .list_matters_filtered(None, Some(PracticeArea::Corporate))
+            .list_matters_filtered(
+                None,
+                None,
+                None,
+                Some(PracticeArea::Corporate),
+                None,
+                0,
+                u64::MAX,
+            )
             .await
             .unwrap();
         assert_eq!(by_pa.len(), 1);
         assert_eq!(by_pa[0].title, "Corp");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_status() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("StatusC");
+        store.upsert(c.clone()).await.unwrap();
+        let mut open = Matter::new(&c.id, "Open Matter", PracticeArea::Corporate);
+        open.status = MatterStatus::Open;
+        store.upsert_matter(open).await.unwrap();
+        let mut closed = Matter::new(&c.id, "Closed Matter", PracticeArea::Corporate);
+        closed.status = MatterStatus::Closed;
+        store.upsert_matter(closed).await.unwrap();
+        let results = store
+            .list_matters_filtered(
+                None,
+                Some(MatterStatus::Open),
+                None,
+                None,
+                None,
+                0,
+                u64::MAX,
+            )
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Open Matter");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_by_phase() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("PhaseC");
+        store.upsert(c.clone()).await.unwrap();
+        let mut intake = Matter::new(&c.id, "Intake Matter", PracticeArea::Litigation);
+        intake.phase = MatterPhase::Intake;
+        store.upsert_matter(intake).await.unwrap();
+        let mut discovery = Matter::new(&c.id, "Discovery Matter", PracticeArea::Litigation);
+        discovery.phase = MatterPhase::Discovery;
+        store.upsert_matter(discovery).await.unwrap();
+        let results = store
+            .list_matters_filtered(
+                None,
+                None,
+                Some(MatterPhase::Discovery),
+                None,
+                None,
+                0,
+                u64::MAX,
+            )
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Discovery Matter");
+    }
+
+    #[tokio::test]
+    async fn list_matters_filtered_search() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("SearchC");
+        store.upsert(c.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(
+                &c.id,
+                "Contract Review",
+                PracticeArea::Corporate,
+            ))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "Tax Filing", PracticeArea::Tax))
+            .await
+            .unwrap();
+        let results = store
+            .list_matters_filtered(None, None, None, None, Some("contract"), 0, u64::MAX)
+            .await
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Contract Review");
+    }
+
+    #[tokio::test]
+    async fn list_matters_default_returns_all() {
+        let store = MemoryCrmStore::new();
+        let c = Contact::new("AllC");
+        store.upsert(c.clone()).await.unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "M1", PracticeArea::Tax))
+            .await
+            .unwrap();
+        store
+            .upsert_matter(Matter::new(&c.id, "M2", PracticeArea::Other))
+            .await
+            .unwrap();
+        let all = store.list_matters().await.unwrap();
+        assert_eq!(all.len(), 2);
     }
 }

@@ -4,7 +4,7 @@ use crate::{
     Result,
     types::{
         Contact, ContactChannel, ContactStage, ContactWithChannels, Interaction, Matter,
-        PracticeArea,
+        MatterPhase, MatterStatus, PracticeArea,
     },
 };
 
@@ -80,21 +80,41 @@ pub trait CrmStore: Send + Sync {
     // ── Matters ───────────────────────────────────────────────────────────────
 
     /// Return all matters ordered by most-recently-updated first.
-    async fn list_matters(&self) -> Result<Vec<Matter>>;
-
-    /// Return matters matching optional filters.
     ///
-    /// Both filters are optional and can be combined:
-    /// - `contact_id` — if set, only matters for this contact are returned.
-    /// - `practice_area` — if set, only matters with this practice area are returned.
+    /// Default implementation delegates to [`Self::list_matters_filtered`] with
+    /// no filters and an unbounded result set.
+    async fn list_matters(&self) -> Result<Vec<Matter>> {
+        self.list_matters_filtered(None, None, None, None, None, 0, u64::MAX)
+            .await
+    }
+
+    /// Return matters matching optional filters, with pagination.
+    ///
+    /// All parameters are optional and can be combined with AND logic:
+    /// - `contact_id` — only matters linked to this contact.
+    /// - `status` — only matters in this lifecycle status.
+    /// - `phase` — only matters in this phase.
+    /// - `practice_area` — only matters with this practice area.
+    /// - `search` — case-insensitive substring match against `title` and `description`.
+    /// - `offset` / `limit` — pagination (default: 0 / all).
     async fn list_matters_filtered(
         &self,
         contact_id: Option<&str>,
+        status: Option<MatterStatus>,
+        phase: Option<MatterPhase>,
         practice_area: Option<PracticeArea>,
+        search: Option<&str>,
+        offset: u64,
+        limit: u64,
     ) -> Result<Vec<Matter>>;
 
     /// Return all matters for a contact, ordered by most-recently-updated first.
-    async fn list_matters_by_contact(&self, contact_id: &str) -> Result<Vec<Matter>>;
+    ///
+    /// Default implementation delegates to [`Self::list_matters_filtered`].
+    async fn list_matters_by_contact(&self, contact_id: &str) -> Result<Vec<Matter>> {
+        self.list_matters_filtered(Some(contact_id), None, None, None, None, 0, u64::MAX)
+            .await
+    }
 
     /// Return a single matter by ID, or `None` if not found.
     async fn get_matter(&self, id: &str) -> Result<Option<Matter>>;

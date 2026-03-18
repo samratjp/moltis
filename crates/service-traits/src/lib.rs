@@ -1257,7 +1257,7 @@ pub trait CrmService: Send + Sync {
     async fn upsert_channel(&self, params: Value) -> ServiceResult;
     async fn delete_channel(&self, params: Value) -> ServiceResult;
     // ── Matters ───────────────────────────────────────────────────────────────
-    async fn list_matters(&self) -> ServiceResult;
+    async fn list_matters(&self, params: Value) -> ServiceResult;
     async fn get_matter(&self, params: Value) -> ServiceResult;
     async fn upsert_matter(&self, params: Value) -> ServiceResult;
     async fn delete_matter(&self, params: Value) -> ServiceResult;
@@ -1300,7 +1300,7 @@ impl CrmService for NoopCrmService {
         Err("crm not configured".into())
     }
 
-    async fn list_matters(&self) -> ServiceResult {
+    async fn list_matters(&self, _p: Value) -> ServiceResult {
         Ok(serde_json::json!([]))
     }
 
