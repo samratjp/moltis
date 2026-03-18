@@ -3,7 +3,7 @@
   "checkpoint_id": "92acda0c4470",
   "strategy": "manual-commit",
   "branch": "CHA-19-web-ui-crm-tab",
-  "checkpoints_count": 0,
+  "checkpoints_count": 1,
   "files_touched": [
     "crates/cli/Cargo.toml",
     "crates/gateway/src/crm_service.rs",
@@ -34,13 +34,20 @@
       "context": "/92/acda0c4470/1/context.md",
       "content_hash": "/92/acda0c4470/1/content_hash.txt",
       "prompt": "/92/acda0c4470/1/prompt.txt"
+    },
+    {
+      "metadata": "/92/acda0c4470/2/metadata.json",
+      "transcript": "/92/acda0c4470/2/full.jsonl",
+      "context": "/92/acda0c4470/2/context.md",
+      "content_hash": "/92/acda0c4470/2/content_hash.txt",
+      "prompt": "/92/acda0c4470/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 98,
-    "cache_creation_tokens": 214538,
-    "cache_read_tokens": 9252613,
-    "output_tokens": 30044,
-    "api_call_count": 81
+    "input_tokens": 205,
+    "cache_creation_tokens": 554244,
+    "cache_read_tokens": 15515019,
+    "output_tokens": 72395,
+    "api_call_count": 154
   }
 }
