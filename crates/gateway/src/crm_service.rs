@@ -101,8 +101,30 @@ fn store_err(e: moltis_crm::Error) -> ServiceError {
 impl CrmService for LiveCrmService {
     // ── Contacts ──────────────────────────────────────────────────────────────
 
-    async fn list_contacts(&self) -> ServiceResult {
-        let contacts = self.store.list().await.map_err(store_err)?;
+    async fn list_contacts(&self, params: Value) -> ServiceResult {
+        // If any filter params are present, use list_filtered; otherwise list all.
+        let stage = params
+            .get("stage")
+            .and_then(|v| v.as_str())
+            .map(|s| s.parse::<ContactStage>().map_err(ServiceError::message))
+            .transpose()?;
+        let search = params.get("search").and_then(|v| v.as_str());
+        let offset = params.get("offset").and_then(|v| v.as_u64()).unwrap_or(0);
+        let limit = params.get("limit").and_then(|v| v.as_u64()).unwrap_or(0);
+
+        let contacts = if stage.is_some() || search.is_some() || offset > 0 || limit > 0 {
+            let effective_limit = if limit == 0 {
+                50
+            } else {
+                limit
+            };
+            self.store
+                .list_filtered(stage, search, offset, effective_limit)
+                .await
+                .map_err(store_err)?
+        } else {
+            self.store.list().await.map_err(store_err)?
+        };
         Ok(Value::Array(
             contacts.into_iter().map(contact_to_json).collect(),
         ))
@@ -112,6 +134,29 @@ impl CrmService for LiveCrmService {
         let id = require_str(&params, "id")?;
         let contact = self.store.get(id).await.map_err(store_err)?;
         Ok(contact.map(contact_to_json).unwrap_or(Value::Null))
+    }
+
+    async fn get_contact_by_external(&self, params: Value) -> ServiceResult {
+        let source = require_str(&params, "source")?;
+        let external_id = require_str(&params, "externalId")?;
+        let contact = self
+            .store
+            .get_by_external(source, external_id)
+            .await
+            .map_err(store_err)?;
+        Ok(contact.map(contact_to_json).unwrap_or(Value::Null))
+    }
+
+    async fn get_contact_with_channels(&self, params: Value) -> ServiceResult {
+        let id = require_str(&params, "id")?;
+        let result = self.store.get_with_channels(id).await.map_err(store_err)?;
+        match result {
+            None => Ok(Value::Null),
+            Some(cwc) => Ok(serde_json::json!({
+                "contact":  contact_to_json(cwc.contact),
+                "channels": cwc.channels.into_iter().map(channel_to_json).collect::<Vec<_>>(),
+            })),
+        }
     }
 
     async fn upsert_contact(&self, params: Value) -> ServiceResult {
@@ -436,7 +481,7 @@ mod tests {
     #[tokio::test]
     async fn list_contacts_empty() {
         let svc = make_service().await;
-        let result = svc.list_contacts().await.unwrap();
+        let result = svc.list_contacts(serde_json::json!({})).await.unwrap();
         assert_eq!(result, serde_json::json!([]));
     }
 
@@ -466,7 +511,7 @@ mod tests {
         svc.upsert_contact(serde_json::json!({ "id": id, "name": "Bob", "stage": "prospect" }))
             .await
             .unwrap();
-        let result = svc.list_contacts().await.unwrap();
+        let result = svc.list_contacts(serde_json::json!({})).await.unwrap();
         let arr = result.as_array().unwrap();
         assert_eq!(arr.len(), 1);
         assert_eq!(arr[0]["name"], "Bob");
@@ -853,5 +898,235 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(result, Value::Null);
+    }
+
+    // ── list_contacts filter/pagination ───────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_contacts_no_params_backward_compat() {
+        let svc = make_service().await;
+        let id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(serde_json::json!({ "id": id, "name": "Filter", "stage": "lead" }))
+            .await
+            .unwrap();
+        // Empty params → returns all
+        let result = svc.list_contacts(serde_json::json!({})).await.unwrap();
+        assert_eq!(result.as_array().unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn list_contacts_filter_by_stage() {
+        let svc = make_service().await;
+        let id1 = uuid::Uuid::new_v4().to_string();
+        let id2 = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(serde_json::json!({ "id": id1, "name": "Lead One", "stage": "lead" }))
+            .await
+            .unwrap();
+        svc.upsert_contact(
+            serde_json::json!({ "id": id2, "name": "Active One", "stage": "active" }),
+        )
+        .await
+        .unwrap();
+        let result = svc
+            .list_contacts(serde_json::json!({ "stage": "lead" }))
+            .await
+            .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["name"], "Lead One");
+    }
+
+    #[tokio::test]
+    async fn list_contacts_filter_by_search() {
+        let svc = make_service().await;
+        let id1 = uuid::Uuid::new_v4().to_string();
+        let id2 = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(
+            serde_json::json!({ "id": id1, "name": "Alice Smith", "stage": "lead" }),
+        )
+        .await
+        .unwrap();
+        svc.upsert_contact(serde_json::json!({ "id": id2, "name": "Bob Jones", "stage": "lead" }))
+            .await
+            .unwrap();
+        let result = svc
+            .list_contacts(serde_json::json!({ "search": "alice" }))
+            .await
+            .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["name"], "Alice Smith");
+    }
+
+    #[tokio::test]
+    async fn list_contacts_pagination() {
+        let svc = make_service().await;
+        for i in 0..5u32 {
+            let id = uuid::Uuid::new_v4().to_string();
+            svc.upsert_contact(
+                serde_json::json!({ "id": id, "name": format!("Contact {i}"), "stage": "lead" }),
+            )
+            .await
+            .unwrap();
+        }
+        let page1 = svc
+            .list_contacts(serde_json::json!({ "offset": 0, "limit": 2 }))
+            .await
+            .unwrap();
+        assert_eq!(page1.as_array().unwrap().len(), 2);
+
+        let page2 = svc
+            .list_contacts(serde_json::json!({ "offset": 2, "limit": 2 }))
+            .await
+            .unwrap();
+        assert_eq!(page2.as_array().unwrap().len(), 2);
+
+        // Pages must be disjoint
+        let p1_ids: Vec<&str> = page1
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v["id"].as_str().unwrap())
+            .collect();
+        let p2_ids: Vec<&str> = page2
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v["id"].as_str().unwrap())
+            .collect();
+        assert!(p1_ids.iter().all(|id| !p2_ids.contains(id)));
+    }
+
+    #[tokio::test]
+    async fn list_contacts_invalid_stage_errors() {
+        let svc = make_service().await;
+        let result = svc
+            .list_contacts(serde_json::json!({ "stage": "not_a_valid_stage" }))
+            .await;
+        assert!(result.is_err());
+    }
+
+    // ── get_contact_by_external ───────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_contact_by_external_found() {
+        let svc = make_service().await;
+        let id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(serde_json::json!({
+            "id": id,
+            "name": "Ext User",
+            "stage": "lead",
+            "source": "telegram",
+            "externalId": "tg-42",
+        }))
+        .await
+        .unwrap();
+        let result = svc
+            .get_contact_by_external(serde_json::json!({
+                "source": "telegram",
+                "externalId": "tg-42",
+            }))
+            .await
+            .unwrap();
+        assert_eq!(result["name"], "Ext User");
+        assert_eq!(result["externalId"], "tg-42");
+    }
+
+    #[tokio::test]
+    async fn get_contact_by_external_not_found() {
+        let svc = make_service().await;
+        let result = svc
+            .get_contact_by_external(serde_json::json!({
+                "source": "telegram",
+                "externalId": "no-such-id",
+            }))
+            .await
+            .unwrap();
+        assert_eq!(result, Value::Null);
+    }
+
+    #[tokio::test]
+    async fn get_contact_by_external_missing_params() {
+        let svc = make_service().await;
+        // missing externalId
+        assert!(
+            svc.get_contact_by_external(serde_json::json!({ "source": "telegram" }))
+                .await
+                .is_err()
+        );
+        // missing source
+        assert!(
+            svc.get_contact_by_external(serde_json::json!({ "externalId": "tg-1" }))
+                .await
+                .is_err()
+        );
+    }
+
+    // ── get_contact_with_channels ─────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn get_contact_with_channels_returns_contact_and_channels() {
+        let svc = make_service().await;
+        let contact_id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(serde_json::json!({
+            "id": contact_id,
+            "name": "With Channels",
+            "stage": "active",
+        }))
+        .await
+        .unwrap();
+        let ch_id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_channel(serde_json::json!({
+            "id": ch_id,
+            "contactId": contact_id,
+            "channelType": "telegram",
+            "channelId": "tg-100",
+        }))
+        .await
+        .unwrap();
+
+        let result = svc
+            .get_contact_with_channels(serde_json::json!({ "id": contact_id }))
+            .await
+            .unwrap();
+        assert_eq!(result["contact"]["name"], "With Channels");
+        let channels = result["channels"].as_array().unwrap();
+        assert_eq!(channels.len(), 1);
+        assert_eq!(channels[0]["channelType"], "telegram");
+    }
+
+    #[tokio::test]
+    async fn get_contact_with_channels_no_channels() {
+        let svc = make_service().await;
+        let id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(serde_json::json!({ "id": id, "name": "No Channels", "stage": "lead" }))
+            .await
+            .unwrap();
+        let result = svc
+            .get_contact_with_channels(serde_json::json!({ "id": id }))
+            .await
+            .unwrap();
+        assert_eq!(result["contact"]["name"], "No Channels");
+        assert_eq!(result["channels"].as_array().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn get_contact_with_channels_not_found() {
+        let svc = make_service().await;
+        let result = svc
+            .get_contact_with_channels(serde_json::json!({ "id": "nonexistent-id" }))
+            .await
+            .unwrap();
+        assert_eq!(result, Value::Null);
+    }
+
+    #[tokio::test]
+    async fn get_contact_with_channels_missing_id() {
+        let svc = make_service().await;
+        assert!(
+            svc.get_contact_with_channels(serde_json::json!({}))
+                .await
+                .is_err()
+        );
     }
 }

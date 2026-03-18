@@ -89,6 +89,8 @@ const READ_METHODS: &[&str] = &[
     "cron.runs",
     "crm.contacts.list",
     "crm.contacts.get",
+    "crm.contacts.getByExternal",
+    "crm.contacts.getWithChannels",
     "crm.channels.list",
     "crm.matters.list",
     "crm.matters.get",

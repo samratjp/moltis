@@ -1248,8 +1248,10 @@ impl SystemInfoService for NoopSystemInfoService {
 #[async_trait]
 pub trait CrmService: Send + Sync {
     // ── Contacts ──────────────────────────────────────────────────────────────
-    async fn list_contacts(&self) -> ServiceResult;
+    async fn list_contacts(&self, params: Value) -> ServiceResult;
     async fn get_contact(&self, params: Value) -> ServiceResult;
+    async fn get_contact_by_external(&self, params: Value) -> ServiceResult;
+    async fn get_contact_with_channels(&self, params: Value) -> ServiceResult;
     async fn upsert_contact(&self, params: Value) -> ServiceResult;
     async fn delete_contact(&self, params: Value) -> ServiceResult;
     // ── Contact channels ──────────────────────────────────────────────────────
@@ -1272,11 +1274,19 @@ pub struct NoopCrmService;
 
 #[async_trait]
 impl CrmService for NoopCrmService {
-    async fn list_contacts(&self) -> ServiceResult {
+    async fn list_contacts(&self, _p: Value) -> ServiceResult {
         Ok(serde_json::json!([]))
     }
 
     async fn get_contact(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn get_contact_by_external(&self, _p: Value) -> ServiceResult {
+        Err("crm not configured".into())
+    }
+
+    async fn get_contact_with_channels(&self, _p: Value) -> ServiceResult {
         Err("crm not configured".into())
     }
 
