@@ -4519,7 +4519,33 @@ pub(super) fn register(reg: &mut MethodRegistry) {
                 ctx.state
                     .services
                     .crm
-                    .list_contacts()
+                    .list_contacts(ctx.params)
+                    .await
+                    .map_err(ErrorShape::from)
+            })
+        }),
+    );
+    reg.register(
+        "crm.contacts.getByExternal",
+        Box::new(|ctx| {
+            Box::pin(async move {
+                ctx.state
+                    .services
+                    .crm
+                    .get_contact_by_external(ctx.params)
+                    .await
+                    .map_err(ErrorShape::from)
+            })
+        }),
+    );
+    reg.register(
+        "crm.contacts.getWithChannels",
+        Box::new(|ctx| {
+            Box::pin(async move {
+                ctx.state
+                    .services
+                    .crm
+                    .get_contact_with_channels(ctx.params)
                     .await
                     .map_err(ErrorShape::from)
             })
