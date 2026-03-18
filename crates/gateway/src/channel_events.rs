@@ -6,6 +6,9 @@ use {
     tracing::{debug, error, info, warn},
 };
 
+#[cfg(feature = "crm")]
+use tracing::trace;
+
 use {
     moltis_channels::{
         ChannelAttachment, ChannelEvent, ChannelEventSink, ChannelMessageMeta, ChannelReplyTarget,
@@ -120,12 +123,130 @@ fn start_channel_typing_loop(
 /// `GatewayState` exists (same pattern as cron callbacks).
 pub struct GatewayChannelEventSink {
     state: Arc<tokio::sync::OnceCell<Arc<GatewayState>>>,
+    #[cfg(feature = "crm")]
+    crm_store: Option<Arc<dyn moltis_crm::CrmStore>>,
+    #[cfg(feature = "crm")]
+    crm_config: moltis_config::schema::CrmConfig,
 }
 
 impl GatewayChannelEventSink {
     pub fn new(state: Arc<tokio::sync::OnceCell<Arc<GatewayState>>>) -> Self {
-        Self { state }
+        Self {
+            state,
+            #[cfg(feature = "crm")]
+            crm_store: None,
+            #[cfg(feature = "crm")]
+            crm_config: moltis_config::schema::CrmConfig::default(),
+        }
     }
+
+    #[cfg(feature = "crm")]
+    #[must_use]
+    pub fn with_crm(
+        mut self,
+        store: Arc<dyn moltis_crm::CrmStore>,
+        config: moltis_config::schema::CrmConfig,
+    ) -> Self {
+        self.crm_store = Some(store);
+        self.crm_config = config;
+        self
+    }
+}
+
+/// Handle CRM side-effects for an inbound channel message.
+///
+/// Runs fire-and-forget inside a `tokio::spawn`. Never blocks message delivery.
+#[cfg(feature = "crm")]
+async fn handle_crm_inbound(
+    store: Arc<dyn moltis_crm::CrmStore>,
+    config: moltis_config::schema::CrmConfig,
+    channel_type: String,
+    peer_id: String,
+    username: Option<String>,
+    sender_name: Option<String>,
+) {
+    use moltis_crm::{Contact, ContactChannel, Interaction, InteractionKind};
+
+    if peer_id.is_empty() {
+        return;
+    }
+
+    // 1. Look up existing channel link.
+    let existing_channel = match store.get_channel_by_external(&channel_type, &peer_id).await {
+        Ok(ch) => ch,
+        Err(e) => {
+            warn!(error = %e, channel_type, peer_id, "CRM inbound handling failed: channel lookup");
+            return;
+        },
+    };
+
+    // Resolve contact name: sender_name > username > peer_id.
+    let resolved_name = sender_name
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .or_else(|| username.as_deref().filter(|s| !s.is_empty()))
+        .unwrap_or(&peer_id)
+        .to_string();
+
+    let contact_id = if let Some(ch) = existing_channel {
+        let contact_id = ch.contact_id.clone();
+
+        // Update name if sender_name changed.
+        if let Some(ref name) = sender_name
+            && !name.is_empty()
+        {
+            match store.get(&contact_id).await {
+                Ok(Some(mut contact)) if contact.name != *name => {
+                    contact.name = name.clone();
+                    if let Err(e) = store.upsert(contact).await {
+                        warn!(error = %e, contact_id, "CRM: failed to update contact name");
+                    }
+                },
+                Ok(_) => {},
+                Err(e) => {
+                    warn!(error = %e, contact_id, "CRM: failed to fetch contact for name update");
+                },
+            }
+        }
+
+        contact_id
+    } else {
+        // No existing channel link found.
+        if !config.auto_create_contacts {
+            return;
+        }
+
+        // Create contact + channel link.
+        let contact = Contact::with_source(&resolved_name, &channel_type, &peer_id);
+        let contact_id = contact.id.clone();
+
+        if let Err(e) = store.upsert(contact).await {
+            warn!(error = %e, channel_type, peer_id, "CRM: failed to create contact");
+            return;
+        }
+
+        let channel_link = ContactChannel::new(&contact_id, &channel_type, &peer_id);
+        if let Err(e) = store.upsert_channel(channel_link).await {
+            warn!(error = %e, channel_type, peer_id, "CRM: failed to link contact channel");
+            return;
+        }
+
+        debug!(
+            contact_id,
+            channel_type, peer_id, "auto-created CRM contact"
+        );
+        contact_id
+    };
+
+    // 3. Log the interaction.
+    let summary = format!("Inbound message via {channel_type}");
+    let interaction = Interaction::new(&contact_id, InteractionKind::Message, &summary);
+    if let Err(e) = store.upsert_interaction(interaction).await {
+        warn!(error = %e, contact_id, channel_type, "CRM: failed to log interaction");
+        return;
+    }
+
+    trace!(contact_id, channel_type, "logged CRM interaction");
 }
 
 #[async_trait]
@@ -139,6 +260,33 @@ impl ChannelEventSink for GatewayChannelEventSink {
                     return;
                 },
             };
+
+            // Fire-and-forget CRM side-effects for inbound messages.
+            #[cfg(feature = "crm")]
+            if let ChannelEvent::InboundMessage {
+                ref channel_type,
+                ref peer_id,
+                ref username,
+                ref sender_name,
+                ..
+            } = event
+                && let Some(crm_store) = self.crm_store.clone()
+                && self.crm_config.enabled
+            {
+                let channel_type = channel_type.as_str().to_string();
+                let peer_id = peer_id.clone();
+                let username = username.clone();
+                let sender_name = sender_name.clone();
+                let crm_config = self.crm_config.clone();
+                tokio::spawn(handle_crm_inbound(
+                    crm_store,
+                    crm_config,
+                    channel_type,
+                    peer_id,
+                    username,
+                    sender_name,
+                ));
+            }
 
             // Render QR data as an SVG so the frontend can display it directly.
             #[cfg(feature = "whatsapp")]
@@ -1825,5 +1973,234 @@ mod tests {
     fn shell_mode_rewrite_skips_peek_and_stop() {
         assert!(rewrite_for_shell_mode("/peek").is_none());
         assert!(rewrite_for_shell_mode("/stop").is_none());
+    }
+
+    // ── CRM inbound handler tests ─────────────────────────────────────────────
+
+    #[cfg(feature = "crm")]
+    mod crm_tests {
+        use std::sync::Arc;
+
+        use {
+            moltis_config::schema::CrmConfig,
+            moltis_crm::{CrmStore, MemoryCrmStore},
+        };
+
+        use super::handle_crm_inbound;
+
+        fn crm_config(enabled: bool, auto_create: bool) -> CrmConfig {
+            CrmConfig {
+                enabled,
+                auto_create_contacts: auto_create,
+                ..Default::default()
+            }
+        }
+
+        fn store() -> Arc<MemoryCrmStore> {
+            Arc::new(MemoryCrmStore::new())
+        }
+
+        // 1. New contact auto-created + channel linked + interaction logged.
+        #[tokio::test]
+        async fn auto_creates_contact_and_logs_interaction() {
+            let s = store();
+            let config = crm_config(true, true);
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                config,
+                "telegram".into(),
+                "12345".into(),
+                Some("alice_user".into()),
+                Some("Alice".into()),
+            )
+            .await;
+
+            let contacts = s.list().await.unwrap();
+            assert_eq!(contacts.len(), 1, "should have created 1 contact");
+            let contact = &contacts[0];
+            assert_eq!(contact.name, "Alice");
+
+            let channels = s.list_channels_for_contact(&contact.id).await.unwrap();
+            assert_eq!(channels.len(), 1, "should have linked channel");
+            assert_eq!(channels[0].channel_type, "telegram");
+            assert_eq!(channels[0].channel_id, "12345");
+
+            let interactions = s.list_interactions_by_contact(&contact.id).await.unwrap();
+            assert_eq!(interactions.len(), 1, "should have logged 1 interaction");
+        }
+
+        // 2. auto_create_contacts=false → skip contact create.
+        #[tokio::test]
+        async fn skips_create_when_auto_create_disabled() {
+            let s = store();
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, false),
+                "telegram".into(),
+                "99999".into(),
+                None,
+                None,
+            )
+            .await;
+
+            let contacts = s.list().await.unwrap();
+            assert!(contacts.is_empty(), "should not create contacts");
+        }
+
+        // 3. Known contact → update name when changed.
+        #[tokio::test]
+        async fn updates_contact_name_when_changed() {
+            use moltis_crm::{Contact, ContactChannel};
+
+            let s = store();
+            let contact = Contact::with_source("Old Name", "telegram", "777");
+            let contact_id = contact.id.clone();
+            s.upsert(contact).await.unwrap();
+            let ch = ContactChannel::new(&contact_id, "telegram", "777");
+            s.upsert_channel(ch).await.unwrap();
+
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".into(),
+                "777".into(),
+                None,
+                Some("New Name".into()),
+            )
+            .await;
+
+            let updated = s.get(&contact_id).await.unwrap().unwrap();
+            assert_eq!(updated.name, "New Name");
+
+            let interactions = s.list_interactions_by_contact(&contact_id).await.unwrap();
+            assert_eq!(
+                interactions.len(),
+                1,
+                "interaction logged for known contact"
+            );
+        }
+
+        // 4. Known contact, name unchanged → only log interaction.
+        #[tokio::test]
+        async fn logs_interaction_without_name_update_when_name_same() {
+            use moltis_crm::{Contact, ContactChannel};
+
+            let s = store();
+            let contact = Contact::with_source("Bob", "telegram", "888");
+            let contact_id = contact.id.clone();
+            s.upsert(contact).await.unwrap();
+            s.upsert_channel(ContactChannel::new(&contact_id, "telegram", "888"))
+                .await
+                .unwrap();
+
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".into(),
+                "888".into(),
+                None,
+                Some("Bob".into()), // same name
+            )
+            .await;
+
+            let contact = s.get(&contact_id).await.unwrap().unwrap();
+            assert_eq!(contact.name, "Bob"); // unchanged
+            let interactions = s.list_interactions_by_contact(&contact_id).await.unwrap();
+            assert_eq!(interactions.len(), 1);
+        }
+
+        // 5. Empty peer_id → skip all CRM ops.
+        #[tokio::test]
+        async fn skips_when_peer_id_empty() {
+            let s = store();
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".into(),
+                String::new(),
+                None,
+                None,
+            )
+            .await;
+
+            assert!(s.list().await.unwrap().is_empty());
+        }
+
+        // 6. sender_name is None → fallback to username.
+        #[tokio::test]
+        async fn uses_username_when_sender_name_none() {
+            let s = store();
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "slack".into(),
+                "U12345".into(),
+                Some("slackuser".into()),
+                None,
+            )
+            .await;
+
+            let contacts = s.list().await.unwrap();
+            assert_eq!(contacts[0].name, "slackuser");
+        }
+
+        // 7. sender_name and username both None → fallback to peer_id.
+        #[tokio::test]
+        async fn uses_peer_id_when_both_name_and_username_none() {
+            let s = store();
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "whatsapp".into(),
+                "14155550100".into(),
+                None,
+                None,
+            )
+            .await;
+
+            let contacts = s.list().await.unwrap();
+            assert_eq!(contacts[0].name, "14155550100");
+        }
+
+        // 8. Repeated messages from same peer → 1 contact, 2 interactions.
+        #[tokio::test]
+        async fn logs_multiple_interactions_for_same_contact() {
+            let s = store();
+            let args = (
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".to_string(),
+                "555".to_string(),
+                None::<String>,
+                Some("Carol".to_string()),
+            );
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".into(),
+                "555".into(),
+                None,
+                Some("Carol".into()),
+            )
+            .await;
+            drop(args);
+            handle_crm_inbound(
+                Arc::clone(&s) as Arc<dyn CrmStore>,
+                crm_config(true, true),
+                "telegram".into(),
+                "555".into(),
+                None,
+                Some("Carol".into()),
+            )
+            .await;
+
+            let contacts = s.list().await.unwrap();
+            assert_eq!(contacts.len(), 1, "only 1 contact");
+            let interactions = s
+                .list_interactions_by_contact(&contacts[0].id)
+                .await
+                .unwrap();
+            assert_eq!(interactions.len(), 2, "2 interactions logged");
+        }
     }
 }

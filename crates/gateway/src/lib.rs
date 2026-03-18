@@ -26,9 +26,9 @@ pub mod channel_webhook_middleware;
 pub mod channel_webhook_rate_limit;
 pub mod chat;
 pub mod chat_error;
-pub mod cron;
 #[cfg(feature = "crm")]
 pub mod crm_service;
+pub mod cron;
 pub mod env_routes;
 #[cfg(feature = "graphql")]
 pub mod graphql_routes;

@@ -1876,14 +1876,20 @@ pub async fn prepare_gateway(
         .expect("failed to run crm migrations");
 
     // Wire live CRM service when the feature is enabled and CRM is configured.
+    // Also hoist the store reference so it can be passed to the channel event sink below.
     #[cfg(feature = "crm")]
-    {
+    let crm_store_for_sink: Option<Arc<dyn moltis_crm::CrmStore>> = {
         if config.crm.enabled {
             let crm_store = Arc::new(moltis_crm::SqliteCrmStore::new(db_pool.clone()));
-            let crm_svc = Arc::new(crate::crm_service::LiveCrmService::new(crm_store));
+            let crm_svc = Arc::new(crate::crm_service::LiveCrmService::new(Arc::clone(
+                &crm_store,
+            )));
             services = services.with_crm(crm_svc as Arc<dyn crate::services::CrmService>);
+            Some(crm_store as Arc<dyn moltis_crm::CrmStore>)
+        } else {
+            None
         }
-    }
+    };
 
     // Migrate plugins data into unified skills system (idempotent, non-fatal).
     moltis_skills::migration::migrate_plugins_to_skills(&data_dir).await;
@@ -2765,9 +2771,17 @@ pub async fn prepare_gateway(
             crate::channel_store::SqliteChannelStore::new(db_pool.clone()),
         );
 
-        let channel_sink: Arc<dyn moltis_channels::ChannelEventSink> = Arc::new(
-            crate::channel_events::GatewayChannelEventSink::new(Arc::clone(&deferred_state)),
-        );
+        let channel_sink: Arc<dyn moltis_channels::ChannelEventSink> = {
+            let sink =
+                crate::channel_events::GatewayChannelEventSink::new(Arc::clone(&deferred_state));
+            #[cfg(feature = "crm")]
+            let sink = if let Some(store) = crm_store_for_sink {
+                sink.with_crm(store, config.crm.clone())
+            } else {
+                sink
+            };
+            Arc::new(sink)
+        };
 
         // Create plugins and register with the registry.
         let mut registry = ChannelRegistry::new();
