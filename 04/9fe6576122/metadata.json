@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "049fe6576122",
+  "strategy": "manual-commit",
+  "branch": "feat/cha-17-crm-matters-rpc",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "crates/crm/migrations/20260318000000_matters_filter_indexes.sql",
+    "crates/crm/src/store.rs",
+    "crates/crm/src/store_memory.rs",
+    "crates/crm/src/store_sqlite.rs",
+    "crates/service-traits/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/04/9fe6576122/0/metadata.json",
+      "transcript": "/04/9fe6576122/0/full.jsonl",
+      "context": "/04/9fe6576122/0/context.md",
+      "content_hash": "/04/9fe6576122/0/content_hash.txt",
+      "prompt": "/04/9fe6576122/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 628,
+    "cache_creation_tokens": 774192,
+    "cache_read_tokens": 11821020,
+    "output_tokens": 51335,
+    "api_call_count": 128
+  }
+}

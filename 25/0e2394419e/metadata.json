@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "250e2394419e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plans/2026-03-17-plan-crm-matters-rpc-methods.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/25/0e2394419e/0/metadata.json",
+      "transcript": "/25/0e2394419e/0/full.jsonl",
+      "context": "/25/0e2394419e/0/context.md",
+      "content_hash": "/25/0e2394419e/0/content_hash.txt",
+      "prompt": "/25/0e2394419e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 67,
+    "cache_creation_tokens": 183436,
+    "cache_read_tokens": 3193859,
+    "output_tokens": 21152,
+    "api_call_count": 42
+  }
+}
