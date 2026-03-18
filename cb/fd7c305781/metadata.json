@@ -3,7 +3,7 @@
   "checkpoint_id": "cbfd7c305781",
   "strategy": "manual-commit",
   "branch": "CHA-19-web-ui-crm-tab",
-  "checkpoints_count": 0,
+  "checkpoints_count": 2,
   "files_touched": [
     "plans/CHA-19-ceo-review-v2.md"
   ],
@@ -14,13 +14,20 @@
       "context": "/cb/fd7c305781/0/context.md",
       "content_hash": "/cb/fd7c305781/0/content_hash.txt",
       "prompt": "/cb/fd7c305781/0/prompt.txt"
+    },
+    {
+      "metadata": "/cb/fd7c305781/1/metadata.json",
+      "transcript": "/cb/fd7c305781/1/full.jsonl",
+      "context": "/cb/fd7c305781/1/context.md",
+      "content_hash": "/cb/fd7c305781/1/content_hash.txt",
+      "prompt": "/cb/fd7c305781/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 33,
-    "cache_creation_tokens": 87494,
-    "cache_read_tokens": 1604545,
-    "output_tokens": 13974,
-    "api_call_count": 22
+    "input_tokens": 140,
+    "cache_creation_tokens": 427200,
+    "cache_read_tokens": 7866951,
+    "output_tokens": 56325,
+    "api_call_count": 95
   }
 }
