@@ -1129,4 +1129,95 @@ mod tests {
                 .is_err()
         );
     }
+
+    // ── Interaction tests (CHA-18) ───────────────────────────────────────────
+
+    #[tokio::test]
+    async fn list_interactions_by_matter() {
+        let svc = make_service().await;
+        let contact_id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(serde_json::json!({
+            "id": contact_id,
+            "name": "IntMatter",
+            "stage": "active",
+        }))
+        .await
+        .unwrap();
+        let matter_id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_matter(serde_json::json!({
+            "id": matter_id,
+            "contactId": contact_id,
+            "title": "Contract",
+            "status": "open",
+            "phase": "intake",
+            "practiceArea": "corporate",
+        }))
+        .await
+        .unwrap();
+        // One interaction linked to the matter, one without.
+        let iid_linked = uuid::Uuid::new_v4().to_string();
+        svc.upsert_interaction(serde_json::json!({
+            "id": iid_linked,
+            "contactId": contact_id,
+            "matterId": matter_id,
+            "kind": "meeting",
+            "summary": "Kickoff meeting",
+        }))
+        .await
+        .unwrap();
+        let iid_other = uuid::Uuid::new_v4().to_string();
+        svc.upsert_interaction(serde_json::json!({
+            "id": iid_other,
+            "contactId": contact_id,
+            "kind": "note",
+            "summary": "Unrelated note",
+        }))
+        .await
+        .unwrap();
+        let result = svc
+            .list_interactions(serde_json::json!({ "matterId": matter_id }))
+            .await
+            .unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(arr[0]["id"], iid_linked);
+        assert_eq!(arr[0]["matterId"], matter_id);
+    }
+
+    #[tokio::test]
+    async fn upsert_interaction_overwrites_existing() {
+        let svc = make_service().await;
+        let contact_id = uuid::Uuid::new_v4().to_string();
+        svc.upsert_contact(serde_json::json!({
+            "id": contact_id,
+            "name": "IntOverwrite",
+            "stage": "active",
+        }))
+        .await
+        .unwrap();
+        let iid = uuid::Uuid::new_v4().to_string();
+        svc.upsert_interaction(serde_json::json!({
+            "id": iid,
+            "contactId": contact_id,
+            "kind": "call",
+            "summary": "Original summary",
+        }))
+        .await
+        .unwrap();
+        // Upsert same ID with updated summary and kind.
+        svc.upsert_interaction(serde_json::json!({
+            "id": iid,
+            "contactId": contact_id,
+            "kind": "email",
+            "summary": "Updated summary",
+        }))
+        .await
+        .unwrap();
+        let result = svc
+            .get_interaction(serde_json::json!({ "id": iid }))
+            .await
+            .unwrap();
+        assert_eq!(result["summary"], "Updated summary");
+        assert_eq!(result["kind"], "email");
+    }
 }
