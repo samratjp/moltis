@@ -37,6 +37,7 @@ import "./page-projects.js";
 import "./page-skills.js";
 import "./page-metrics.js";
 import "./page-settings.js"; // also imports channels, providers, mcp, hooks, images, logs
+import "./page-crm.js";
 
 // Import side-effect modules
 import "./nav-counts.js";

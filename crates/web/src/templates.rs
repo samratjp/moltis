@@ -30,6 +30,7 @@ pub(crate) struct SpaRoutes {
     crons: &'static str,
     monitoring: &'static str,
     graphql: &'static str,
+    crm: &'static str,
 }
 
 pub(crate) static SPA_ROUTES: SpaRoutes = SpaRoutes {
@@ -47,6 +48,7 @@ pub(crate) static SPA_ROUTES: SpaRoutes = SpaRoutes {
     crons: "/settings/crons",
     monitoring: "/monitoring",
     graphql: "/settings/graphql",
+    crm: "/crm",
 };
 
 // ── GonData ──────────────────────────────────────────────────────────────────
@@ -65,6 +67,7 @@ pub(crate) struct GonData {
     heartbeat_runs: Vec<moltis_cron::types::CronRunRecord>,
     voice_enabled: bool,
     graphql_enabled: bool,
+    crm_enabled: bool,
     git_branch: Option<String>,
     mem: MemSnapshot,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -250,15 +253,17 @@ pub(crate) struct NavCounts {
     mcp: usize,
     crons: usize,
     hooks: usize,
+    crm: usize,
 }
 
 pub(crate) async fn build_nav_counts(gw: &GatewayState) -> NavCounts {
-    let (projects, models, channels, mcp, crons) = tokio::join!(
+    let (projects, models, channels, mcp, crons, crm_contacts) = tokio::join!(
         gw.services.project.list(),
         gw.services.model.list(),
         gw.services.channel.status(),
         gw.services.mcp.list(),
         gw.services.cron.list(),
+        gw.services.crm.list_contacts(),
     );
 
     let projects = projects
@@ -331,6 +336,11 @@ pub(crate) async fn build_nav_counts(gw: &GatewayState) -> NavCounts {
 
     let hooks = gw.inner.read().await.discovered_hooks.len();
 
+    let crm = crm_contacts
+        .ok()
+        .and_then(|v| v.as_array().map(|a| a.len()))
+        .unwrap_or(0);
+
     NavCounts {
         projects,
         providers,
@@ -339,6 +349,7 @@ pub(crate) async fn build_nav_counts(gw: &GatewayState) -> NavCounts {
         mcp,
         crons,
         hooks,
+        crm,
     }
 }
 
@@ -436,6 +447,7 @@ pub(crate) async fn build_gon_data(gw: &GatewayState) -> GonData {
         heartbeat_runs,
         voice_enabled: cfg!(feature = "voice"),
         graphql_enabled: cfg!(feature = "graphql"),
+        crm_enabled: cfg!(feature = "crm"),
         git_branch: detect_git_branch(),
         mem: collect_mem_snapshot(),
         deploy_platform: gw.deploy_platform.clone(),

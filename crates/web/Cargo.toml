@@ -36,6 +36,7 @@ which           = { workspace = true }
 agent              = ["moltis-gateway/agent"]
 default            = ["embedded-assets"]
 embedded-assets    = ["dep:include_dir"]
+crm                = ["moltis-gateway/crm"]
 graphql            = []
 metrics            = ["moltis-gateway/metrics"]
 push-notifications = ["moltis-gateway/push-notifications"]
